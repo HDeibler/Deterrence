@@ -3,9 +3,6 @@
 <img width="1865" height="958" alt="Screenshot 2026-03-08 at 6 42 17 PM" src="https://github.com/user-attachments/assets/a36e63a5-6e0d-48cd-83c7-3cb7cc2f4aa8" />
 
 
-<img width="372" height="203" alt="Screenshot 2026-03-08 at 6 33 00 PM" src="https://github.com/user-attachments/assets/dcad7273-3517-4665-8be1-25be020e4d98" />
-
-
 <img width="644" height="630" alt="Screenshot 2026-03-08 at 6 42 27 PM" src="https://github.com/user-attachments/assets/c887b05f-a3bd-4aac-99dd-2420db9b41bc" />
 
 
