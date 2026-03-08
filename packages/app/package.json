@@ -1,0 +1,17 @@
+{
+  "name": "deterrence-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vite --host 0.0.0.0 --port ${PORT:-4173}",
+    "check": "node scripts/check-syntax.mjs",
+    "lint": "eslint src --report-unused-disable-directives"
+  },
+  "dependencies": {
+    "three": "^0.168.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.5"
+  }
+}

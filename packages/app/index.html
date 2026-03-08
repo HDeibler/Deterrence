@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deterrence | Earth Simulation</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <div class="view-card" aria-label="View toggles">
+        <div class="view-strip">
+          <button id="viewLaunchToggle" class="view-chip" type="button">
+            <kbd>1</kbd>
+            <span id="viewLaunchLabel" class="sr-only">Launch View On</span>
+          </button>
+          <button id="viewRadarToggle" class="view-chip" type="button">
+            <kbd>2</kbd>
+            <span id="viewRadarLabel" class="sr-only">Radar View On</span>
+          </button>
+          <button id="viewNavalToggle" class="view-chip" type="button">
+            <kbd>3</kbd>
+            <span id="viewNavalLabel" class="sr-only">Naval View On</span>
+          </button>
+          <button id="viewBasesToggle" class="view-chip" type="button">
+            <kbd>4</kbd>
+            <span id="viewBasesLabel" class="sr-only">Bases Off</span>
+          </button>
+          <button id="viewContextToggle" class="view-chip" type="button">
+            <kbd>5</kbd>
+            <span id="viewContextLabel" class="sr-only">Borders/Cities Off</span>
+          </button>
+        </div>
+      </div>
+
+      <aside class="control-dock" aria-label="Simulation controls">
+        <details class="control-section">
+          <summary>
+            <span>Launch</span>
+            <small id="launchSummaryLabel">Strike Off</small>
+          </summary>
+          <div class="control-body">
+            <button id="missileToggle" class="control-button" type="button">
+              <kbd>M</kbd>
+              <span id="missileToggleLabel">Strike Mode</span>
+            </button>
+            <button id="siteFilterToggle" class="control-button" type="button">
+              <kbd>Tab</kbd>
+              <span id="siteFilterToggleLabel">All Sites</span>
+            </button>
+            <div id="warheadCountChip" class="control-stepper" aria-label="Warhead count">
+              <button id="warheadDecreaseButton" class="control-stepper-button" type="button">
+                -
+              </button>
+              <span id="warheadCountLabel">Warheads: 1</span>
+              <button id="warheadIncreaseButton" class="control-stepper-button" type="button">
+                +
+              </button>
+            </div>
+          </div>
+        </details>
+
+        <details class="control-section">
+          <summary>
+            <span>Radar</span>
+            <small id="radarSummaryLabel">Off</small>
+          </summary>
+          <div class="control-body">
+            <button id="radarToggle" class="control-button" type="button">
+              <kbd>R</kbd>
+              <span id="radarToggleLabel">Radar Mode</span>
+            </button>
+            <button id="radarModeCycle" class="control-button" type="button">
+              <kbd>Tab</kbd>
+              <span id="radarModeCycleLabel">Ground Radar</span>
+            </button>
+          </div>
+        </details>
+
+        <details class="control-section">
+          <summary>
+            <span>Naval</span>
+            <small id="navalSummaryLabel">Off</small>
+          </summary>
+          <div class="control-body">
+            <button id="navalToggle" class="control-button" type="button">
+              <kbd>N</kbd>
+              <span id="navalToggleLabel">Naval Mode</span>
+            </button>
+          </div>
+        </details>
+
+        <div class="control-footer">
+          <button id="settingsToggle" class="control-button" type="button" hidden>
+            <kbd>Esc</kbd>
+            <span>Settings</span>
+          </button>
+          <button id="resetViewButton" class="control-button" type="button">
+            <kbd>0</kbd>
+            <span>Reset View</span>
+          </button>
+        </div>
+      </aside>
+
+      <section class="hud">
+        <div class="metric">
+          <span class="label">Stage</span>
+          <strong id="missileStageValue">Standby</strong>
+        </div>
+        <div class="metric">
+          <span class="label">Speed</span>
+          <strong id="missileSpeedValue">-</strong>
+        </div>
+        <div class="metric">
+          <span class="label">Altitude</span>
+          <strong id="missileAltitudeValue">-</strong>
+        </div>
+        <div class="metric">
+          <span class="label">Time To Impact</span>
+          <strong id="timeToImpactValue">-</strong>
+        </div>
+        <div class="metric">
+          <span class="label">Range To Target</span>
+          <strong id="rangeToTargetValue">-</strong>
+        </div>
+        <div class="metric">
+          <span class="label">Apogee</span>
+          <strong id="apogeeValue">-</strong>
+        </div>
+      </section>
+
+      <div id="sceneRoot" class="scene-root" aria-label="3D Earth simulation"></div>
+
+      <section id="nationSelectOverlay" class="menu-overlay">
+        <div class="menu-card">
+          <p class="eyebrow">Battle Setup</p>
+          <h2>Select a Nation</h2>
+          <p class="menu-copy">
+            Tab through the three playable nations to preview their borders and global assets. Press
+            Enter to lock in the highlighted nation.
+          </p>
+          <div id="nationSelectOptions" class="nation-options" aria-label="Playable nations"></div>
+          <button id="nationStartButton" class="menu-primary" type="button">Enter Battle</button>
+          <p id="devModeBadge" class="menu-badge" hidden>
+            Development mode active: env defaults and keypad 9 god view are enabled.
+          </p>
+        </div>
+      </section>
+
+      <section id="pauseMenuOverlay" class="menu-overlay" hidden>
+        <div class="menu-card">
+          <p class="eyebrow">Settings</p>
+          <h2>Paused</h2>
+          <p class="menu-copy">
+            Change nation, view rules, and debugging options. Resume to continue the battle clock.
+          </p>
+          <label class="menu-field">
+            <span>Nation</span>
+            <select id="settingsCountryField"></select>
+          </label>
+          <label class="menu-toggle">
+            <input id="settingsGodViewField" type="checkbox" />
+            <span>God View</span>
+          </label>
+          <p id="settingsStatusText" class="menu-copy">Country view enabled</p>
+          <div class="menu-actions">
+            <button id="resumeGameButton" class="menu-primary" type="button">Resume</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

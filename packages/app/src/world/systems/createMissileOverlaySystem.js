@@ -1,0 +1,935 @@
+import * as THREE from 'three';
+import { latLonToVector3, vector3ToLatLon } from '../geo/geoMath.js';
+
+const CATEGORY_COLORS = {
+  silo: '#ff6b6b',
+  airbase: '#6ba3ff',
+  naval: '#6bffd4',
+};
+
+const CATEGORY_LABELS = {
+  all: 'All Sites',
+  silo: 'Missile Silos',
+  airbase: 'Airbases',
+  naval: 'Naval Facilities',
+};
+
+const BASE_CLUSTER_ALTITUDE_KM = 3200;
+
+const SITE_LIMITS = [
+  { altitudeMaxKm: 200, radius: 10.5 },
+  { altitudeMaxKm: 600, radius: 9.2 },
+  { altitudeMaxKm: 1500, radius: 8.1 },
+  { altitudeMaxKm: 4000, radius: 6.8 },
+  { altitudeMaxKm: Infinity, radius: 5.6 },
+];
+
+const ACTIVE_MODES = new Set([
+  'strike',
+  'strikeConfirm',
+  'selectLaunch',
+  'selectTarget',
+  'confirm',
+]);
+
+export function createMissileOverlaySystem({
+  document,
+  mountNode,
+  renderer,
+  camera,
+  earthGroup,
+  worldConfig,
+  requestRender,
+  installationStore,
+}) {
+  const canvas = document.createElement('canvas');
+  canvas.className = 'missile-overlay';
+  canvas.setAttribute('aria-hidden', 'true');
+  mountNode.parentElement.appendChild(canvas);
+
+  const context = canvas.getContext('2d');
+  const localVector = new THREE.Vector3();
+  const worldPosition = new THREE.Vector3();
+  const worldNormal = new THREE.Vector3();
+  const toCamera = new THREE.Vector3();
+  const projected = new THREE.Vector3();
+  const hitRegions = [];
+
+  let canvasWidth = 0;
+  let canvasHeight = 0;
+  let mode = 'idle';
+  let strikeCount = 1;
+  let godView = false;
+  let previewCountryIso3 = null;
+  let showAllBases = false;
+  let selectedBase = null;
+
+  installationStore.ensureLoaded();
+
+  return {
+    setMode(nextMode) {
+      mode = nextMode;
+      requestRender();
+    },
+    getMode() {
+      return mode;
+    },
+    setGodView(enabled) {
+      godView = Boolean(enabled);
+      requestRender();
+    },
+    setPreviewCountry(iso3) {
+      previewCountryIso3 = iso3;
+      requestRender();
+    },
+    setShowAllBases(enabled) {
+      showAllBases = Boolean(enabled);
+      if (!showAllBases) {
+        selectedBase = null;
+      }
+      requestRender();
+    },
+    setSelectedBase(site) {
+      selectedBase = site ?? null;
+      requestRender();
+    },
+    getStrikeCount() {
+      return strikeCount;
+    },
+    setStrikeCount(count) {
+      const maxAvailable = installationStore.getAvailableSiloCount(
+        installationStore.getActiveCountry(),
+      );
+      strikeCount = Math.max(1, Math.min(count, Math.max(maxAvailable, 1)));
+      requestRender();
+    },
+    adjustStrikeCount(delta) {
+      this.setStrikeCount(strikeCount + delta);
+    },
+    pickLaunchSite(clientX, clientY) {
+      const size = renderer.getSize(new THREE.Vector2());
+      const rect = renderer.domElement.getBoundingClientRect();
+      const canvasX = clientX - rect.left;
+      const canvasY = clientY - rect.top;
+      if (canvasX < 0 || canvasY < 0 || canvasX > size.x || canvasY > size.y) {
+        return null;
+      }
+
+      for (let index = hitRegions.length - 1; index >= 0; index -= 1) {
+        const region = hitRegions[index];
+        const dx = canvasX - region.x;
+        const dy = canvasY - region.y;
+        if (dx * dx + dy * dy <= region.radius * region.radius) {
+          return region.site;
+        }
+      }
+      return null;
+    },
+    getTargetFromPoint(point) {
+      const localPoint = point.clone().applyQuaternion(earthGroup.quaternion.clone().invert());
+      return vector3ToLatLon(localPoint);
+    },
+    render({
+      altitudeKm,
+      selection,
+      flights = [],
+      radar = { mode: 'off' },
+      showFlightMarkers = true,
+    }) {
+      syncCanvasSize({
+        canvas,
+        renderer,
+        state: { canvasWidth, canvasHeight },
+        update: (nextWidth, nextHeight) => {
+          canvasWidth = nextWidth;
+          canvasHeight = nextHeight;
+        },
+      });
+      context.clearRect(0, 0, canvasWidth, canvasHeight);
+      hitRegions.length = 0;
+
+      const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
+      context.save();
+      context.scale(dpr, dpr);
+
+      const projArgs = {
+        camera,
+        earthGroup,
+        worldConfig,
+        projected,
+        localVector,
+        worldPosition,
+        worldNormal,
+        toCamera,
+      };
+
+      // Draw installations when in any active mode
+      if (
+        (ACTIVE_MODES.has(mode) || previewCountryIso3 || showAllBases) &&
+        installationStore.getStatus() === 'ready'
+      ) {
+        drawInstallations({
+          context,
+          altitudeKm,
+          ...projArgs,
+          sites: showAllBases
+            ? godView
+              ? installationStore.getSites()
+              : installationStore.getCountrySites(installationStore.getActiveCountry())
+            : previewCountryIso3
+              ? installationStore.getCountrySites(previewCountryIso3)
+              : installationStore.getFilteredSites(),
+          spentCheck: (site) => installationStore.isSiloSpent(site.id),
+          activeCountry: previewCountryIso3 ?? installationStore.getActiveCountry(),
+          godView,
+          previewMode: Boolean(previewCountryIso3),
+          selectedSite: selectedBase,
+          hitRegions,
+          size: { width: canvasWidth / dpr, height: canvasHeight / dpr },
+        });
+      }
+
+      // Selected launch site marker (manual mode)
+      drawSelectionMarker({
+        context,
+        ...projArgs,
+        point: selection.launchSite
+          ? {
+              lat: selection.launchSite.latitude,
+              lon: selection.launchSite.longitude,
+              label: `LAUNCH: ${selection.launchSite.name}`,
+            }
+          : null,
+        color: '#ffd182',
+        size: 8,
+      });
+
+      // Strike mode: draw all placed targets with numbers
+      const targets = selection.targets ?? [];
+      if (targets.length > 0) {
+        const isConfirm = mode === 'strikeConfirm';
+        for (let i = 0; i < targets.length; i += 1) {
+          drawNumberedTarget({
+            context,
+            ...projArgs,
+            point: targets[i],
+            index: i,
+            total: strikeCount,
+            isConfirmPending: isConfirm,
+          });
+        }
+      }
+
+      // Manual mode single target (non-strike)
+      if (
+        targets.length === 0 &&
+        selection.target &&
+        (mode === 'selectTarget' || mode === 'confirm')
+      ) {
+        drawNumberedTarget({
+          context,
+          ...projArgs,
+          point: selection.target,
+          index: 0,
+          total: 1,
+          isConfirmPending: mode === 'confirm',
+        });
+      }
+
+      // Impact points from active flights
+      if (showFlightMarkers) {
+        const latestImpact =
+          [...flights].reverse().find((f) => f?.impactPoint)?.impactPoint ?? null;
+        drawSelectionMarker({
+          context,
+          ...projArgs,
+          point: latestImpact
+            ? { lat: latestImpact.lat, lon: latestImpact.lon, label: 'Impact' }
+            : null,
+          color: '#ff7b7b',
+          size: 10,
+        });
+
+        for (const flight of flights) {
+          if (flight?.active && flight?.target) {
+            drawSelectionMarker({
+              context,
+              ...projArgs,
+              point: {
+                lat: flight.target.lat,
+                lon: flight.target.lon,
+                label: '',
+              },
+              color: 'rgba(255, 68, 68, 0.4)',
+              size: 7,
+            });
+          }
+        }
+      }
+
+      drawSelectionMarker({
+        context,
+        ...projArgs,
+        point: selectedBase
+          ? {
+              lat: selectedBase.latitude,
+              lon: selectedBase.longitude,
+              label: selectedBase.name,
+            }
+          : null,
+        color: '#f4f7fb',
+        size: 11,
+      });
+
+      drawSelectionMarker({
+        context,
+        ...projArgs,
+        point: radar.pendingGroundTarget
+          ? {
+              lat: radar.pendingGroundTarget.lat,
+              lon: radar.pendingGroundTarget.lon,
+              label: 'RADAR SITE',
+            }
+          : null,
+        color: '#7de4ff',
+        size: 9,
+      });
+
+      drawStatusBar({
+        context,
+        viewportWidth: canvasWidth / dpr,
+        viewportHeight: canvasHeight / dpr,
+        mode,
+        selection,
+        installationStore,
+        strikeCount,
+        targetsPlaced: targets.length,
+        activeFlightCount: flights.filter((f) => f?.active).length,
+        godView,
+        radar,
+        selectedBase,
+        showAllBases,
+      });
+      context.restore();
+    },
+    dispose() {
+      canvas.remove();
+    },
+  };
+}
+
+// ─── Installation markers ───────────────────────────────────────────────────
+
+function drawInstallations({
+  context,
+  altitudeKm,
+  camera,
+  earthGroup,
+  worldConfig,
+  projected,
+  localVector,
+  worldPosition,
+  worldNormal,
+  toCamera,
+  sites,
+  spentCheck,
+  activeCountry,
+  godView,
+  previewMode,
+  selectedSite,
+  hitRegions,
+  size,
+}) {
+  const profile =
+    SITE_LIMITS.find((entry) => altitudeKm <= entry.altitudeMaxKm) ??
+    SITE_LIMITS[SITE_LIMITS.length - 1];
+  const projectedSites = [];
+
+  for (let index = 0; index < sites.length; index += 1) {
+    const site = sites[index];
+    const isOwn = site.countryIso3 === activeCountry;
+    if (!godView && !isOwn) {
+      continue;
+    }
+    if (
+      !projectPoint({
+        lat: site.latitude,
+        lon: site.longitude,
+        camera,
+        earthGroup,
+        worldConfig,
+        localVector,
+        worldPosition,
+        worldNormal,
+        toCamera,
+        projected,
+      })
+    ) {
+      continue;
+    }
+
+    const x = (projected.x + 1) * 0.5 * size.width;
+    const y = (1 - projected.y) * 0.5 * size.height;
+    projectedSites.push({
+      site,
+      x,
+      y,
+      isOwn,
+      isSpent: spentCheck(site),
+      baseColor: CATEGORY_COLORS[site.category] ?? '#ffd182',
+      isSelected: selectedSite?.id === site.id,
+    });
+  }
+
+  if (altitudeKm > BASE_CLUSTER_ALTITUDE_KM && !previewMode) {
+    drawClusteredInstallations({
+      context,
+      entries: projectedSites,
+      hitRegions,
+    });
+    return;
+  }
+
+  for (const entry of projectedSites) {
+    drawIndividualInstallation({
+      context,
+      entry,
+      radius: profile.radius,
+    });
+
+    if (!previewMode && entry.isOwn && !entry.isSpent) {
+      hitRegions.push({
+        x: entry.x,
+        y: entry.y,
+        radius: Math.max(profile.radius + 6, 11),
+        site: entry.site,
+      });
+    }
+  }
+}
+
+// ─── Shape helpers ──────────────────────────────────────────────────────────
+
+function adjustAlpha(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function drawClusteredInstallations({ context, entries, hitRegions }) {
+  const clusters = new Map();
+  const clusterSize = 34;
+
+  for (const entry of entries) {
+    const cellX = Math.floor(entry.x / clusterSize);
+    const cellY = Math.floor(entry.y / clusterSize);
+    const key = `${cellX}:${cellY}`;
+    let cluster = clusters.get(key);
+    if (!cluster) {
+      cluster = {
+        entries: [],
+        x: 0,
+        y: 0,
+        categoryCounts: { silo: 0, airbase: 0, naval: 0 },
+      };
+      clusters.set(key, cluster);
+    }
+    cluster.entries.push(entry);
+    cluster.x += entry.x;
+    cluster.y += entry.y;
+    cluster.categoryCounts[entry.site.category] += 1;
+  }
+
+  for (const cluster of clusters.values()) {
+    if (cluster.entries.length === 1) {
+      const entry = cluster.entries[0];
+      const singletonRadius = 10.5;
+      drawIndividualInstallation({
+        context,
+        entry,
+        radius: singletonRadius,
+        emphasis: true,
+      });
+      if (entry.isOwn && !entry.isSpent) {
+        hitRegions.push({
+          x: entry.x,
+          y: entry.y,
+          radius: 24,
+          site: entry.site,
+        });
+      }
+      continue;
+    }
+
+    if (cluster.entries.length <= 3) {
+      drawSpreadCluster({
+        context,
+        entries: cluster.entries,
+        hitRegions,
+      });
+      continue;
+    }
+
+    const x = cluster.x / cluster.entries.length;
+    const y = cluster.y / cluster.entries.length;
+    const category = getDominantCategory(cluster.categoryCounts);
+    const color = CATEGORY_COLORS[category] ?? '#ffd182';
+
+    context.beginPath();
+    context.arc(x, y, 12, 0, Math.PI * 2);
+    context.fillStyle = 'rgba(9, 18, 33, 0.9)';
+    context.fill();
+    context.lineWidth = 1.4;
+    context.strokeStyle = color;
+    context.stroke();
+
+    drawBaseIcon({
+      context,
+      category,
+      x,
+      y: y - 1,
+      size: 6.6,
+      color,
+      alpha: 0.94,
+    });
+
+    context.fillStyle = 'rgba(244, 247, 251, 0.92)';
+    context.font = 'bold 10px "Space Grotesk", "Avenir Next", sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(String(cluster.entries.length), x, y + 16);
+    context.textAlign = 'left';
+  }
+}
+
+function drawSpreadCluster({ context, entries, hitRegions }) {
+  const centerX = entries.reduce((sum, entry) => sum + entry.x, 0) / entries.length;
+  const centerY = entries.reduce((sum, entry) => sum + entry.y, 0) / entries.length;
+  const spreadRadius = entries.length === 2 ? 11 : 13;
+
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    const angle = -Math.PI * 0.5 + (Math.PI * 2 * index) / entries.length;
+    const spreadEntry = {
+      ...entry,
+      x: centerX + Math.cos(angle) * spreadRadius,
+      y: centerY + Math.sin(angle) * spreadRadius,
+    };
+
+    drawIndividualInstallation({
+      context,
+      entry: spreadEntry,
+      radius: 8.8,
+      emphasis: true,
+    });
+
+    if (entry.isOwn && !entry.isSpent) {
+      hitRegions.push({
+        x: spreadEntry.x,
+        y: spreadEntry.y,
+        radius: 18,
+        site: entry.site,
+      });
+    }
+  }
+}
+
+function drawIndividualInstallation({ context, entry, radius, emphasis = false }) {
+  const alpha = entry.isSpent ? 0.32 : entry.isOwn ? 0.96 : 0.44;
+  const iconColor = entry.isSpent
+    ? 'rgba(140, 146, 160, 0.72)'
+    : adjustAlpha(entry.baseColor, alpha);
+  const shellRadius = radius + 2.8;
+
+  context.beginPath();
+  context.arc(entry.x, entry.y, shellRadius, 0, Math.PI * 2);
+  context.fillStyle = 'rgba(9, 18, 33, 0.88)';
+  context.fill();
+
+  context.beginPath();
+  context.arc(entry.x, entry.y, shellRadius + 1.8, 0, Math.PI * 2);
+  context.strokeStyle = adjustAlpha(entry.baseColor, entry.isOwn ? (emphasis ? 0.5 : 0.34) : 0.18);
+  context.lineWidth = emphasis ? 1.5 : 1.2;
+  context.stroke();
+
+  if (entry.isSelected) {
+    context.beginPath();
+    context.arc(entry.x, entry.y, radius + 6.2, 0, Math.PI * 2);
+    context.strokeStyle = 'rgba(244, 247, 251, 0.9)';
+    context.lineWidth = 1.4;
+    context.stroke();
+  }
+
+  drawBaseIcon({
+    context,
+    category: entry.site.category,
+    x: entry.x,
+    y: entry.y,
+    size: radius + 0.5,
+    color: iconColor,
+    alpha,
+  });
+}
+
+function drawBaseIcon({ context, category, x, y, size, color, alpha }) {
+  context.save();
+  context.translate(x, y);
+  context.strokeStyle = color;
+  context.fillStyle = color;
+  context.lineWidth = 1.4;
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  context.globalAlpha = alpha;
+
+  if (category === 'silo') {
+    context.beginPath();
+    context.moveTo(0, -size * 0.95);
+    context.lineTo(size * 0.26, -size * 0.32);
+    context.lineTo(size * 0.14, size * 0.78);
+    context.lineTo(-size * 0.14, size * 0.78);
+    context.lineTo(-size * 0.26, -size * 0.32);
+    context.closePath();
+    context.stroke();
+  } else if (category === 'naval') {
+    context.beginPath();
+    context.moveTo(-size * 0.9, size * 0.42);
+    context.lineTo(size * 0.82, size * 0.42);
+    context.lineTo(size * 0.5, size * 0.88);
+    context.lineTo(-size * 0.7, size * 0.88);
+    context.closePath();
+    context.stroke();
+    context.beginPath();
+    context.moveTo(-size * 0.18, size * 0.38);
+    context.lineTo(-size * 0.02, -size * 0.6);
+    context.lineTo(size * 0.28, -size * 0.22);
+    context.stroke();
+  } else {
+    context.beginPath();
+    context.moveTo(-size, 0);
+    context.lineTo(size, 0);
+    context.moveTo(0, -size * 0.88);
+    context.lineTo(0, size * 0.88);
+    context.moveTo(-size * 0.32, -size * 0.12);
+    context.lineTo(size * 0.32, -size * 0.12);
+    context.moveTo(-size * 0.55, size * 0.4);
+    context.lineTo(size * 0.55, size * 0.4);
+    context.stroke();
+  }
+
+  context.restore();
+}
+
+function getDominantCategory(categoryCounts) {
+  let winner = 'silo';
+  let best = -Infinity;
+  for (const [category, count] of Object.entries(categoryCounts)) {
+    if (count > best) {
+      winner = category;
+      best = count;
+    }
+  }
+  return winner;
+}
+
+// ─── Selection marker (generic) ─────────────────────────────────────────────
+
+function drawSelectionMarker({
+  context,
+  camera,
+  earthGroup,
+  worldConfig,
+  point,
+  color,
+  size,
+  projected,
+  localVector,
+  worldPosition,
+  worldNormal,
+  toCamera,
+}) {
+  if (!point) {
+    return;
+  }
+  if (
+    !projectPoint({
+      lat: point.lat,
+      lon: point.lon,
+      camera,
+      earthGroup,
+      worldConfig,
+      localVector,
+      worldPosition,
+      worldNormal,
+      toCamera,
+      projected,
+    })
+  ) {
+    return;
+  }
+
+  const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
+  const x = (projected.x + 1) * 0.5 * (context.canvas.width / dpr);
+  const y = (1 - projected.y) * 0.5 * (context.canvas.height / dpr);
+
+  context.beginPath();
+  context.arc(x, y, size, 0, Math.PI * 2);
+  context.strokeStyle = color;
+  context.lineWidth = 1.4;
+  context.stroke();
+  context.beginPath();
+  context.arc(x, y, Math.max(size * 0.35, 2.4), 0, Math.PI * 2);
+  context.fillStyle = color;
+  context.fill();
+  if (point.label) {
+    context.fillStyle = color;
+    context.font = '12px "Space Grotesk", "Avenir Next", sans-serif';
+    context.fillText(point.label, x + size + 6, y);
+  }
+}
+
+// ─── Numbered target marker with crosshair ──────────────────────────────────
+
+function drawNumberedTarget({
+  context,
+  camera,
+  earthGroup,
+  worldConfig,
+  point,
+  index,
+  total,
+  isConfirmPending,
+  projected,
+  localVector,
+  worldPosition,
+  worldNormal,
+  toCamera,
+}) {
+  if (!point) {
+    return;
+  }
+  if (
+    !projectPoint({
+      lat: point.lat,
+      lon: point.lon,
+      camera,
+      earthGroup,
+      worldConfig,
+      localVector,
+      worldPosition,
+      worldNormal,
+      toCamera,
+      projected,
+    })
+  ) {
+    return;
+  }
+
+  const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
+  const x = (projected.x + 1) * 0.5 * (context.canvas.width / dpr);
+  const y = (1 - projected.y) * 0.5 * (context.canvas.height / dpr);
+
+  const color = isConfirmPending ? '#ff4444' : '#ff8844';
+  const outerRadius = isConfirmPending ? 15 : 12;
+
+  // Outer ring
+  context.beginPath();
+  context.arc(x, y, outerRadius, 0, Math.PI * 2);
+  context.strokeStyle = color;
+  context.lineWidth = isConfirmPending ? 2 : 1.4;
+  context.stroke();
+
+  // Crosshair lines
+  const crossLen = outerRadius + 5;
+  context.beginPath();
+  context.moveTo(x - crossLen, y);
+  context.lineTo(x - outerRadius - 2, y);
+  context.moveTo(x + outerRadius + 2, y);
+  context.lineTo(x + crossLen, y);
+  context.moveTo(x, y - crossLen);
+  context.lineTo(x, y - outerRadius - 2);
+  context.moveTo(x, y + outerRadius + 2);
+  context.lineTo(x, y + crossLen);
+  context.strokeStyle = color;
+  context.lineWidth = 1;
+  context.stroke();
+
+  // Number inside circle
+  context.fillStyle = color;
+  context.font = 'bold 11px "Space Grotesk", "Avenir Next", sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(String(index + 1), x, y);
+  context.textAlign = 'left';
+
+  // Label to the right
+  context.font = '11px "Space Grotesk", "Avenir Next", sans-serif';
+  const label = point.label ?? '';
+  context.fillText(total > 1 ? `#${index + 1} ${label}` : label, x + crossLen + 4, y);
+}
+
+// ─── Status bar ─────────────────────────────────────────────────────────────
+
+function drawStatusBar({
+  context,
+  viewportWidth,
+  viewportHeight,
+  mode,
+  selection,
+  installationStore,
+  strikeCount,
+  targetsPlaced,
+  activeFlightCount,
+  godView,
+  radar,
+  selectedBase,
+  showAllBases,
+}) {
+  const activeCountry = installationStore.getActiveCountry();
+  const activeCategory = installationStore.getActiveCategory();
+  const availableSilos = installationStore.getAvailableSiloCount(activeCountry);
+  const categoryLabel = CATEGORY_LABELS[activeCategory] ?? 'All';
+
+  const lines = [];
+
+  if (radar?.mode === 'ground') {
+    lines.push(`RADAR SETUP | Ground Radar | ${activeCountry}`);
+    if (radar.pendingGroundTarget) {
+      lines.push(
+        `Pending site: ${radar.pendingGroundTarget.label} | Enter confirms placement | Click elsewhere to reposition`,
+      );
+    } else {
+      lines.push(
+        `Click globe to stage radar site | Coverage radius: ${radar.coverageKm ?? '?'} km | Tab switches mode | R exits`,
+      );
+    }
+    if ((radar.groundCount ?? 0) > 0) {
+      lines.push(`Ground radars deployed: ${radar.groundCount}`);
+    }
+  } else if (radar?.mode === 'satellite') {
+    lines.push(`RADAR SETUP | Early Warning Satellite | ${activeCountry}`);
+    if (radar.pendingSatelliteSlot) {
+      lines.push(
+        `Pending GEO slot: ${radar.pendingSatelliteSlot.label} | Enter launches from ${radar.spaceportName ?? 'your spaceport'}`,
+      );
+      lines.push(`Selected longitude: ${radar.pendingSatelliteSlot.longitude.toFixed(0)}°`);
+    } else {
+      lines.push(
+        `Click a GEO slot to stage launch from ${radar.spaceportName ?? 'your spaceport'} | Tab switches mode | R exits`,
+      );
+    }
+    if ((radar.satelliteCount ?? 0) > 0 || (radar.launchCount ?? 0) > 0) {
+      lines.push(
+        `Satellites deployed: ${radar.satelliteCount ?? 0} | Launches in progress: ${radar.launchCount ?? 0}`,
+      );
+    }
+  } else if (mode === 'idle') {
+    lines.push('Press M for strikes, N for naval, or R for radar setup.');
+  } else if (mode === 'strike') {
+    lines.push(`STRIKE PLANNING | ${activeCountry} | ${categoryLabel} | Silos: ${availableSilos}`);
+    if (targetsPlaced > 0) {
+      lines.push(
+        `Targets: ${targetsPlaced}/${strikeCount} placed | Click to add more | Enter to launch | Backspace to undo`,
+      );
+    } else {
+      lines.push(`Warheads: ${strikeCount} | Click globe to place targets (1 per warhead)`);
+    }
+  } else if (mode === 'strikeConfirm') {
+    lines.push(
+      `ALL TARGETS SET | ${targetsPlaced}/${strikeCount} warheads assigned | ${activeCountry}`,
+    );
+    lines.push('Press Enter to confirm launch | Backspace to undo last | Esc to clear all');
+  } else if (mode === 'selectLaunch') {
+    lines.push(`Select a missile silo (silos only) | ${activeCountry}`);
+  } else if (mode === 'selectTarget') {
+    lines.push(
+      selection.launchSite
+        ? `Silo: ${selection.launchSite.name} | Click globe to set target`
+        : 'Select a silo first.',
+    );
+  } else if (mode === 'confirm') {
+    lines.push(
+      `Silo: ${selection.launchSite?.name ?? '?'} | Target: ${selection.target?.label ?? '?'}`,
+    );
+    lines.push('Press Enter to confirm launch | Click to change target | Esc to cancel');
+  }
+
+  if (activeFlightCount > 0) {
+    lines.push(`Active missiles: ${activeFlightCount}`);
+  }
+  if (showAllBases && selectedBase) {
+    lines.push(
+      `Base: ${selectedBase.name} | ${CATEGORY_LABELS[selectedBase.category] ?? selectedBase.category} | ${selectedBase.countryIso3}`,
+    );
+    lines.push(
+      `Coords: ${Math.abs(selectedBase.latitude).toFixed(2)}°${selectedBase.latitude >= 0 ? 'N' : 'S'} ${Math.abs(selectedBase.longitude).toFixed(2)}°${selectedBase.longitude >= 0 ? 'E' : 'W'}`,
+    );
+  }
+  lines.push(`Radar radius: ${radar.coverageVisible === false ? 'Hidden' : 'Visible'}`);
+  lines.push(godView ? 'View: God' : `View: ${activeCountry}`);
+
+  context.font = '13px "Space Grotesk", "Avenir Next", sans-serif';
+  context.textBaseline = 'top';
+  context.textAlign = 'left';
+  context.fillStyle = 'rgba(244, 247, 251, 0.84)';
+  const startY = viewportWidth > 640 ? 110 : Math.min(viewportHeight - 140, 164);
+  for (let i = 0; i < lines.length; i += 1) {
+    context.fillText(lines[i], 20, startY + i * 20);
+  }
+}
+
+// ─── Projection ─────────────────────────────────────────────────────────────
+
+function projectPoint({
+  lat,
+  lon,
+  camera,
+  earthGroup,
+  worldConfig,
+  localVector,
+  worldPosition,
+  worldNormal,
+  toCamera,
+  projected,
+}) {
+  latLonToVector3({
+    lat,
+    lon,
+    radius: worldConfig.earthRadius * 1.0015,
+    out: localVector,
+  });
+  worldPosition.copy(localVector).applyQuaternion(earthGroup.quaternion);
+  worldNormal.copy(localVector).normalize().applyQuaternion(earthGroup.quaternion).normalize();
+  toCamera.copy(camera.position).sub(worldPosition).normalize();
+
+  if (worldNormal.dot(toCamera) < 0.08) {
+    return false;
+  }
+
+  projected.copy(worldPosition).project(camera);
+  if (
+    projected.z < -1 ||
+    projected.z > 1 ||
+    Math.abs(projected.x) > 1.08 ||
+    Math.abs(projected.y) > 1.08
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function syncCanvasSize({ canvas, renderer, state, update }) {
+  const size = renderer.getSize(new THREE.Vector2());
+  const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
+  const width = Math.round(size.x * dpr);
+  const height = Math.round(size.y * dpr);
+  if (state.canvasWidth === width && state.canvasHeight === height) {
+    return;
+  }
+  update(width, height);
+  canvas.width = width;
+  canvas.height = height;
+  canvas.style.width = `${size.x}px`;
+  canvas.style.height = `${size.y}px`;
+}

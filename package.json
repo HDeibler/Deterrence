@@ -1,0 +1,29 @@
+{
+  "name": "deterrence",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "node scripts/start-workspace.mjs",
+    "docker:up": "docker compose up -d postgres",
+    "docker:down": "docker compose down",
+    "format:check": "prettier . --check --config .prettierrc.yaml --ignore-path .prettierignore",
+    "format": "prettier . --write --config .prettierrc.yaml --ignore-path .prettierignore",
+    "typecheck": "npm run check -w deterrence-app && npm run check -w deterrence-server",
+    "lint": "eslint . --report-unused-disable-directives"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.25.1",
+    "eslint-config-prettier": "^10.0.2",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

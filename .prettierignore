@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+.vite
+tmp
+package-lock.json
+packages/app/public/data
+**/.env

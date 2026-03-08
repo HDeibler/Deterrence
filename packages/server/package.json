@@ -1,0 +1,16 @@
+{
+  "name": "deterrence-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env src/index.js",
+    "migrate": "node --env-file=.env src/runMigrations.js",
+    "check": "node scripts/check-syntax.mjs",
+    "lint": "eslint src --report-unused-disable-directives"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.3"
+  }
+}

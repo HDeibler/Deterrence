@@ -1,0 +1,78 @@
+export function createGameSessionStore({
+  initialCountryIso3 = null,
+  initialGodView = false,
+  initialPaused = true,
+  initialStarted = false,
+  devMode = false,
+}) {
+  const listeners = new Set();
+  const state = {
+    activeCountryIso3: normalizeIso3(initialCountryIso3),
+    godView: Boolean(initialGodView),
+    paused: Boolean(initialPaused),
+    started: Boolean(initialStarted),
+    devMode: Boolean(devMode),
+  };
+
+  return {
+    getSnapshot() {
+      return { ...state };
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      listener({ ...state });
+      return () => listeners.delete(listener);
+    },
+    selectNation(iso3) {
+      state.activeCountryIso3 = normalizeIso3(iso3);
+      state.started = true;
+      state.paused = false;
+      emit();
+    },
+    setActiveCountry(iso3) {
+      state.activeCountryIso3 = normalizeIso3(iso3);
+      if (!state.started) {
+        state.paused = true;
+      }
+      emit();
+    },
+    setPaused(nextPaused) {
+      state.paused = Boolean(nextPaused);
+      emit();
+    },
+    resume() {
+      state.paused = false;
+      emit();
+    },
+    openSettings() {
+      if (!state.started) {
+        return;
+      }
+      state.paused = true;
+      emit();
+    },
+    setGodView(nextGodView) {
+      state.godView = Boolean(nextGodView);
+      emit();
+    },
+    toggleGodView() {
+      state.godView = !state.godView;
+      emit();
+    },
+  };
+
+  function emit() {
+    const snapshot = { ...state };
+    for (const listener of listeners) {
+      listener(snapshot);
+    }
+  }
+}
+
+function normalizeIso3(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const normalized = value.trim().toUpperCase();
+  return normalized.length === 3 ? normalized : null;
+}
