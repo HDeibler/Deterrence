@@ -1,0 +1,22 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 2x2 mini periodic table grid -->
+  <!-- Top-left: La -->
+  <rect x="6" y="6" width="24" height="24" rx="2.5" fill="#1A1A1A"/>
+  <text x="10" y="14" font-family="Arial, Helvetica, sans-serif" font-size="5.5" font-weight="bold" fill="white">57</text>
+  <text x="18" y="24" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">La</text>
+  
+  <!-- Top-right: Ce -->
+  <rect x="34" y="6" width="24" height="24" rx="2.5" fill="#1A1A1A"/>
+  <text x="38" y="14" font-family="Arial, Helvetica, sans-serif" font-size="5.5" font-weight="bold" fill="white">58</text>
+  <text x="46" y="24" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Ce</text>
+  
+  <!-- Bottom-left: Nd -->
+  <rect x="6" y="34" width="24" height="24" rx="2.5" fill="#1A1A1A"/>
+  <text x="10" y="42" font-family="Arial, Helvetica, sans-serif" font-size="5.5" font-weight="bold" fill="white">60</text>
+  <text x="18" y="52" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Nd</text>
+  
+  <!-- Bottom-right: Dy -->
+  <rect x="34" y="34" width="24" height="24" rx="2.5" fill="#1A1A1A"/>
+  <text x="38" y="42" font-family="Arial, Helvetica, sans-serif" font-size="5.5" font-weight="bold" fill="white">66</text>
+  <text x="46" y="52" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">Dy</text>
+</svg>
