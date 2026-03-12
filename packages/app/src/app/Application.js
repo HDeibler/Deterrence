@@ -1,17 +1,34 @@
 import * as THREE from 'three';
 import { createSceneContext } from '../core/createSceneContext.js';
 import { createHudController } from '../ui/createHudController.js';
+import { createStrategicHudController } from '../ui/createStrategicHudController.js';
 import { createChromeController } from '../ui/createChromeController.js';
+import { createLogisticsHudController } from '../ui/createLogisticsHudController.js';
+import { createDiplomacyHudController } from '../ui/createDiplomacyHudController.js';
+import { createIntelligenceHudController } from '../ui/createIntelligenceHudController.js';
 import { createNavalSimulation } from '../simulation/createNavalSimulation.js';
 import { createRadarSimulation } from '../simulation/createRadarSimulation.js';
+import { createStrategicSimulation } from '../simulation/createStrategicSimulation.js';
+import { createLogisticsSimulation } from '../simulation/createLogisticsSimulation.js';
+import { createDeploymentSimulation } from '../simulation/createDeploymentSimulation.js';
+import { createDisruptionSimulation } from '../simulation/createDisruptionSimulation.js';
+import { createInterceptSimulation } from '../simulation/createInterceptSimulation.js';
+import { createStrategicAiSimulation } from '../simulation/createStrategicAiSimulation.js';
+import { createCampaignEventSystem } from '../simulation/createCampaignEventSystem.js';
 import { createSpaceEnvironment } from '../world/factories/createSpaceEnvironment.js';
 import { createCelestialSystem } from '../world/factories/createCelestialSystem.js';
 import { createRadarVisualSystem } from '../world/factories/createRadarVisualSystem.js';
 import { createCityLabelSystem } from '../world/systems/createCityLabelSystem.js';
 import { createCountryBorderSystem } from '../world/systems/createCountryBorderSystem.js';
+import { createIndustrialOverlaySystem } from '../world/systems/createIndustrialOverlaySystem.js';
 import { createMissileOverlaySystem } from '../world/systems/createMissileOverlaySystem.js';
+import { createTradeRouteOverlaySystem } from '../world/systems/createTradeRouteOverlaySystem.js';
+import { createHubOverlaySystem } from '../world/systems/createHubOverlaySystem.js';
+import { createSupplyNetworkOverlaySystem } from '../world/systems/createSupplyNetworkOverlaySystem.js';
 import { renderConfig, simulationConfig, worldConfig } from '../config/simulationConfig.js';
 import { createMilitaryInstallationStore } from '../data/createMilitaryInstallationStore.js';
+import { createPlayableCountryGeometryStore } from '../data/createPlayableCountryGeometryStore.js';
+import { createStrategicBootstrapStore } from '../data/createStrategicBootstrapStore.js';
 import {
   COUNTRY_SPACEPORTS,
   EARLY_WARNING_SATELLITE_PRESET,
@@ -41,11 +58,21 @@ export async function createApplication({
     window,
     requestRender: () => requestRender(),
   });
+  const playableCountryGeometryStore = createPlayableCountryGeometryStore();
+  const strategicBootstrapStore = createStrategicBootstrapStore({ window });
   const hud = createHudController({ document });
+  const strategicHud = createStrategicHudController({ document });
   const chrome = createChromeController({ document });
   const environment = createSpaceEnvironment({ scene: sceneContext.scene, renderConfig });
   const navalSimulation = createNavalSimulation({ worldConfig });
   const radarSimulation = createRadarSimulation({ simulationConfig, worldConfig });
+  const strategicSimulation = createStrategicSimulation();
+  const logisticsSimulation = createLogisticsSimulation();
+  const deploymentSimulation = createDeploymentSimulation();
+  const disruptionSimulation = createDisruptionSimulation();
+  const interceptSimulation = createInterceptSimulation();
+  const strategicAiSimulation = createStrategicAiSimulation();
+  const campaignEvents = createCampaignEventSystem();
   let navalModeActive = false;
   let radarMode = 'off';
   const radarSelection = createInitialRadarSelection();
@@ -58,6 +85,16 @@ export async function createApplication({
   let paused = sessionStore.getSnapshot().paused;
   let godView = sessionStore.getSnapshot().godView;
   let activeCountryIso3 = sessionStore.getSnapshot().activeCountryIso3;
+  let strategicLoadSequence = 0;
+  let pendingSavedGameState = null;
+  let strategicPlacementMode = null;
+  let strategicPlacementPreview = null;
+  let selectedIndustrialProjectId = null;
+  let hoveredIndustrialProjectId = null;
+
+  await installationStore.ensureLoaded();
+  await playableCountryGeometryStore.ensureLoaded();
+  await loadStrategicState(activeCountryIso3);
 
   const celestialSystem = await createCelestialSystem({
     scene: sceneContext.scene,
@@ -104,6 +141,45 @@ export async function createApplication({
     requestRender: () => requestRender(),
     installationStore,
   });
+  const industrialOverlay = createIndustrialOverlaySystem({
+    document,
+    mountNode,
+    renderer: sceneContext.renderer,
+    camera: sceneContext.camera,
+    earthGroup: celestialSystem.groups.earth,
+    worldConfig,
+    requestRender: () => requestRender(),
+  });
+  const tradeRouteOverlay = createTradeRouteOverlaySystem({
+    document,
+    mountNode,
+    renderer: sceneContext.renderer,
+    camera: sceneContext.camera,
+    earthGroup: celestialSystem.groups.earth,
+    worldConfig,
+    requestRender: () => requestRender(),
+  });
+  const hubOverlay = createHubOverlaySystem({
+    document,
+    mountNode,
+    renderer: sceneContext.renderer,
+    camera: sceneContext.camera,
+    earthGroup: celestialSystem.groups.earth,
+    worldConfig,
+    requestRender: () => requestRender(),
+  });
+  const supplyNetworkOverlay = createSupplyNetworkOverlaySystem({
+    document,
+    mountNode,
+    renderer: sceneContext.renderer,
+    camera: sceneContext.camera,
+    earthGroup: celestialSystem.groups.earth,
+    worldConfig,
+    requestRender: () => requestRender(),
+  });
+  const logisticsHud = createLogisticsHudController({ document });
+  const diplomacyHud = createDiplomacyHudController({ document });
+  const intelligenceHud = createIntelligenceHudController({ document });
   const pointerController = createPointerController({
     renderer: sceneContext.renderer,
     camera: sceneContext.camera,
@@ -156,6 +232,13 @@ export async function createApplication({
       missileFlights.step(stepSeconds);
       navalSimulation.step(stepSeconds);
       radarSimulation.step(stepSeconds);
+      strategicSimulation.step(stepSeconds);
+      logisticsSimulation.step(stepSeconds);
+      deploymentSimulation.step(stepSeconds);
+      disruptionSimulation.step(stepSeconds);
+      interceptSimulation.step(stepSeconds);
+      strategicAiSimulation.step(stepSeconds);
+      campaignEvents.step(stepSeconds);
       accumulated -= simulationConfig.fixedTimeStep;
     }
 
@@ -183,7 +266,33 @@ export async function createApplication({
     const visibleRadarSnapshot = getVisibleRadarSnapshot();
     radarVisualSystem.update(visibleRadarSnapshot, sceneContext.camera, clock.elapsedTime);
 
+    const strategicSnapshot = strategicSimulation.getSnapshot();
+    const logisticsSnapshot = logisticsSimulation.getSnapshot();
+    const deploymentSnapshot = deploymentSimulation.getSnapshot();
+    const disruptionSnapshot = disruptionSimulation.getSnapshot();
+    const interceptSnapshot = interceptSimulation.getSnapshot();
+
+    // Feed world state to AI for evaluation
+    strategicAiSimulation.setWorldState({
+      strategic: strategicSnapshot,
+      logistics: logisticsSnapshot,
+      disruption: disruptionSnapshot,
+    });
+
+    // Evaluate campaign event triggers
+    campaignEvents.evaluate({
+      strategic: strategicSnapshot,
+      logistics: logisticsSnapshot,
+      deployment: deploymentSnapshot,
+      disruption: disruptionSnapshot,
+      intercept: interceptSnapshot,
+    });
+
     hud.render({ missile: primaryMissile });
+    renderStrategicHud(strategicSnapshot);
+    logisticsHud.render(logisticsSnapshot);
+    diplomacyHud.render(strategicAiSimulation.getSnapshot());
+    intelligenceHud.render(campaignEvents.getSnapshot());
 
     sceneContext.renderer.render(sceneContext.scene, sceneContext.camera);
     missileOverlay.render({
@@ -198,6 +307,27 @@ export async function createApplication({
     });
     cityLabels.render({
       altitudeKm: celestialSystem.getCameraAltitudeKm(sceneContext.camera, sceneContext.controls),
+    });
+    industrialOverlay.render({
+      altitudeKm: celestialSystem.getCameraAltitudeKm(sceneContext.camera, sceneContext.controls),
+      projects: strategicSnapshot.industrialProjects ?? [],
+      placementMode: strategicPlacementMode,
+      placementPreview: strategicPlacementPreview,
+      hoveredProjectId: hoveredIndustrialProjectId,
+      selectedProjectId: selectedIndustrialProjectId,
+    });
+    tradeRouteOverlay.render({
+      contracts: strategicSnapshot.trade?.contracts ?? [],
+    });
+    hubOverlay.render({
+      altitudeKm: celestialSystem.getCameraAltitudeKm(sceneContext.camera, sceneContext.controls),
+      hubs: logisticsSnapshot.hubs ?? [],
+      deployments: deploymentSnapshot.deployments ?? [],
+    });
+    supplyNetworkOverlay.render({
+      altitudeKm: celestialSystem.getCameraAltitudeKm(sceneContext.camera, sceneContext.controls),
+      routes: logisticsSnapshot.routes ?? [],
+      supplyShocks: disruptionSnapshot.supplyShocks ?? {},
     });
 
     if (running) {
@@ -217,9 +347,63 @@ export async function createApplication({
     requestRender();
   }
 
+  function handlePointerMove(event) {
+    const session = sessionStore.getSnapshot();
+    if (!session.started || session.paused) {
+      return;
+    }
+
+    if (strategicPlacementMode) {
+      const target = getTargetFromPointer(event);
+      const nextPreview = target
+        ? {
+            lat: target.lat,
+            lon: target.lon,
+            label: formatPlacementLabel(strategicPlacementMode),
+            valid: playableCountryGeometryStore.contains(activeCountryIso3, target.lat, target.lon),
+          }
+        : null;
+      if (JSON.stringify(nextPreview) !== JSON.stringify(strategicPlacementPreview)) {
+        strategicPlacementPreview = nextPreview;
+        renderStrategicHud();
+        requestRender();
+      }
+      return;
+    }
+
+    const hoveredProject = industrialOverlay.pickProject(event.clientX, event.clientY);
+    const nextHoveredId = hoveredProject?.id ?? null;
+    if (nextHoveredId !== hoveredIndustrialProjectId) {
+      hoveredIndustrialProjectId = nextHoveredId;
+      requestRender();
+    }
+  }
+
+  function handlePointerLeave() {
+    if (strategicPlacementPreview || hoveredIndustrialProjectId) {
+      strategicPlacementPreview = null;
+      hoveredIndustrialProjectId = null;
+      renderStrategicHud();
+      requestRender();
+    }
+  }
+
   function handlePointerDown(event) {
     const session = sessionStore.getSnapshot();
     if (!session.started || session.paused) {
+      return;
+    }
+
+    if (strategicPlacementMode) {
+      handleStrategicPlacement(event);
+      return;
+    }
+
+    const selectedProject = industrialOverlay.pickProject(event.clientX, event.clientY);
+    if (selectedProject) {
+      selectedIndustrialProjectId = selectedProject.id;
+      renderStrategicHud();
+      requestRender();
       return;
     }
 
@@ -368,11 +552,25 @@ export async function createApplication({
       return;
     }
 
+    const availableMissiles = Math.floor(strategicSimulation.getTotalBaseInventory('missile_inventory'));
+    if (availableMissiles <= 0) {
+      strategicSimulation.setNotification(
+        'No missile inventory is loaded into domestic silo bases.',
+        'warning',
+      );
+      requestRender();
+      return;
+    }
+
     const country = installationStore.getActiveCountry();
     let launchIndex = 0;
 
     for (const target of selection.targets) {
-      const silos = installationStore.selectLaunchSilos({
+      if (launchIndex >= availableMissiles) {
+        break;
+      }
+
+      const silos = selectLoadedLaunchSilos({
         iso3: country,
         targetLat: target.lat,
         targetLon: target.lon,
@@ -384,7 +582,12 @@ export async function createApplication({
       }
 
       const silo = silos[0];
+      const consumption = strategicSimulation.consumeBaseInventory('missile_inventory', 1, silo.id);
+      if (!consumption) {
+        break;
+      }
       installationStore.markSiloSpent(silo.id);
+      strategicSimulation.disableBase(silo.id);
       const labeledTarget = { ...target, label: target.label ?? formatTargetLabel(target) };
       const delay = launchIndex * STRIKE_LAUNCH_STAGGER_MS;
 
@@ -398,6 +601,22 @@ export async function createApplication({
       }
       launchIndex += 1;
     }
+
+    if (launchIndex === 0) {
+      strategicSimulation.setNotification(
+        'Strike aborted: no silo capacity or missile inventory available.',
+        'warning',
+      );
+      requestRender();
+      return;
+    }
+
+    strategicSimulation.setNotification(
+      launchIndex < selection.targets.length
+        ? `Launched ${launchIndex} missiles. Remaining targets were blocked by loaded silo inventory or base limits.`
+        : `Launched ${launchIndex} missiles from domestic silo bases.`,
+      'info',
+    );
 
     // Keep targets visible as reference, reset for next round
     const warheadCount = missileOverlay.getStrikeCount();
@@ -415,11 +634,29 @@ export async function createApplication({
     if (selection.launchSite.category !== 'silo') {
       return;
     }
+    const consumption = strategicSimulation.consumeBaseInventory(
+      'missile_inventory',
+      1,
+      selection.launchSite.id,
+    );
+    if (!consumption) {
+      strategicSimulation.setNotification(
+        'Selected silo has no loaded missile inventory available.',
+        'warning',
+      );
+      requestRender();
+      return;
+    }
     installationStore.markSiloSpent(selection.launchSite.id);
+    strategicSimulation.disableBase(selection.launchSite.id);
     launchSingleMissile({
       launchSite: selection.launchSite,
       target: selection.target,
     });
+    strategicSimulation.setNotification(
+      `Manual launch consumed one missile from ${consumption.baseName}.`,
+      'info',
+    );
     selection.launchSite = null;
     missileOverlay.setMode('selectLaunch');
     chrome.setMissileState({ mode: 'selectLaunch' });
@@ -438,6 +675,13 @@ export async function createApplication({
 
     const key = event.key.toLowerCase();
     const session = sessionStore.getSnapshot();
+
+    if (strategicPlacementMode && key === 'escape') {
+      strategicPlacementMode = null;
+      renderStrategicHud();
+      requestRender();
+      return;
+    }
 
     if (key === 'escape') {
       if (!session.started) {
@@ -624,17 +868,43 @@ export async function createApplication({
     if (!activeCountryIso3 || !radarSelection.groundTarget) {
       return;
     }
+    const consumption = strategicSimulation.consumeBaseInventory('radar', 1);
+    if (!consumption) {
+      strategicSimulation.setNotification(
+        'No radar arrays are loaded into compatible domestic air bases.',
+        'warning',
+      );
+      requestRender();
+      return;
+    }
     radarSimulation.placeGroundRadar({
       countryIso3: activeCountryIso3,
       lat: radarSelection.groundTarget.lat,
       lon: radarSelection.groundTarget.lon,
     });
     radarSelection.groundTarget = null;
+    strategicSimulation.setNotification(
+      `Ground radar deployed from ${consumption.baseName}.`,
+      'info',
+    );
     requestRender();
   }
 
   function confirmSatelliteLaunch() {
     if (!activeCountryIso3 || !radarSelection.satelliteSlot) {
+      return;
+    }
+    const consumption = strategicSimulation.consumeBaseInventory(
+      'early_warning_satellite',
+      1,
+      `spaceport-${activeCountryIso3}`,
+    );
+    if (!consumption) {
+      strategicSimulation.setNotification(
+        'No early warning satellites are loaded at the national spaceport.',
+        'warning',
+      );
+      requestRender();
       return;
     }
     radarSimulation.launchEarlyWarningSatellite({
@@ -643,6 +913,10 @@ export async function createApplication({
       earthRotationRadians: celestialSystem.getEarthRotationRadians(),
     });
     clearRadarSelection();
+    strategicSimulation.setNotification(
+      `Early warning satellite launch committed from ${consumption.baseName}.`,
+      'info',
+    );
     requestRender();
   }
 
@@ -700,6 +974,7 @@ export async function createApplication({
     selection.targets = [];
     navalModeActive = false;
     radarMode = 'off';
+    strategicPlacementMode = null;
     clearRadarSelection();
     missileOverlay.setStrikeCount(1);
     missileOverlay.setMode('idle');
@@ -771,8 +1046,212 @@ export async function createApplication({
     sceneContext.controls.update();
   }
 
+  function buildStrategicUiState() {
+    return {
+      placementMode: strategicPlacementMode,
+      placementCountryName: countryDirectory.getByIso3(activeCountryIso3)?.name ?? activeCountryIso3,
+      placementPreview: strategicPlacementPreview,
+      selectedProjectId: selectedIndustrialProjectId,
+    };
+  }
+
+  function renderStrategicHud(snapshot = strategicSimulation.getSnapshot()) {
+    strategicHud.render(snapshot, buildStrategicUiState());
+  }
+
+  function enterStrategicPlacementMode(projectKey) {
+    if (!activeCountryIso3) {
+      return;
+    }
+
+    strategicPlacementMode = strategicPlacementMode === projectKey ? null : projectKey;
+    strategicPlacementPreview = null;
+    if (strategicPlacementMode) {
+      setRadarMode('off');
+      if (navalModeActive) {
+        navalModeActive = false;
+        chrome.setNavalState({ enabled: false });
+      }
+      exitStrikeMode();
+      strategicSimulation.setNotification(
+        `Placement mode active: click inside ${activeCountryIso3} to place ${formatPlacementLabel(projectKey)}.`,
+        'info',
+      );
+    }
+    renderStrategicHud();
+    requestRender();
+  }
+
+  function handleStrategicPlacement(event) {
+    if (!activeCountryIso3 || !strategicPlacementMode) {
+      return;
+    }
+    const target = getTargetFromPointer(event);
+    if (!target) {
+      return;
+    }
+    if (!playableCountryGeometryStore.contains(activeCountryIso3, target.lat, target.lon)) {
+      strategicSimulation.setNotification(
+        `Place ${formatPlacementLabel(strategicPlacementMode)} inside ${activeCountryIso3}.`,
+        'warning',
+      );
+      renderStrategicHud();
+      requestRender();
+      return;
+    }
+
+    const result = strategicSimulation.placeIndustrialProject(strategicPlacementMode, target);
+    if (!result.ok) {
+      strategicSimulation.setNotification(result.reason ?? 'Unable to place project.', 'warning');
+      renderStrategicHud();
+      requestRender();
+      return;
+    }
+
+    selectedIndustrialProjectId = result.project.id;
+    strategicPlacementMode = null;
+    strategicPlacementPreview = null;
+    strategicSimulation.setNotification(`${result.project.label} placed successfully.`, 'info');
+    renderStrategicHud();
+    requestRender();
+  }
+
+  function formatPlacementLabel(projectKey) {
+    return projectKey === 'chip_factory' ? 'Chip Factory' : 'Military Factory';
+  }
+
+  async function loadStrategicState(countryIso3) {
+    const loadSequence = ++strategicLoadSequence;
+    const previewCountry = countryDirectory.getByIso3(countryIso3);
+
+    if (!countryIso3) {
+      strategicSimulation.clear();
+      renderStrategicHud();
+      return;
+    }
+
+    strategicHud.render(
+      {
+        status: 'loading',
+        countryLabel: previewCountry?.name ?? countryIso3,
+      },
+      buildStrategicUiState(),
+    );
+
+    try {
+      const bootstrap = await strategicBootstrapStore.ensureLoaded(countryIso3);
+      if (loadSequence !== strategicLoadSequence) {
+        return;
+      }
+      strategicSimulation.setBootstrap(
+        bootstrap,
+        installationStore.getStrategicDomesticBases(countryIso3),
+      );
+      renderStrategicHud();
+      requestRender();
+    } catch (error) {
+      if (loadSequence !== strategicLoadSequence) {
+        return;
+      }
+      console.error(error);
+      strategicSimulation.clear();
+      strategicHud.render(
+        {
+          status: 'error',
+          countryLabel: previewCountry?.name ?? countryIso3,
+          message: error.message ?? 'Strategic bootstrap failed',
+        },
+        buildStrategicUiState(),
+      );
+      requestRender();
+    }
+  }
+
+  function selectLoadedLaunchSilos({ iso3, targetLat, targetLon, count }) {
+    const available = installationStore
+      .getAvailableSilos(iso3)
+      .filter((site) => strategicSimulation.getBaseInventory(site.id, 'missile_inventory') >= 1);
+    if (available.length === 0) {
+      return [];
+    }
+
+    const scored = available.map((site) => ({
+      site,
+      distance: calculateTargetDistance(site.latitude, site.longitude, targetLat, targetLon),
+    }));
+    scored.sort((left, right) => left.distance - right.distance);
+    return scored.slice(0, count).map((entry) => entry.site);
+  }
+
+  function calculateTargetDistance(lat1, lon1, lat2, lon2) {
+    const toRad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * toRad;
+    const dLon = (lon2 - lon1) * toRad;
+    const a =
+      Math.sin(dLat * 0.5) * Math.sin(dLat * 0.5) +
+      Math.cos(lat1 * toRad) *
+        Math.cos(lat2 * toRad) *
+        Math.sin(dLon * 0.5) *
+        Math.sin(dLon * 0.5);
+    return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 6371;
+  }
+
+  function resetRuntimeState() {
+    strategicSimulation.clear();
+    radarSimulation.reset();
+    navalSimulation.reset();
+    logisticsSimulation.reset();
+    deploymentSimulation.reset();
+    disruptionSimulation.reset();
+    interceptSimulation.reset();
+    strategicAiSimulation.reset();
+    campaignEvents.reset();
+    installationStore.resetSpentSilos();
+    resetBattleInputs();
+  }
+
+  function applySavedGameState(savedGameState) {
+    if (!savedGameState) {
+      return;
+    }
+    const countryIso3 = savedGameState?.session?.activeCountryIso3 ?? activeCountryIso3;
+    const strategicBootstrap = strategicBootstrapStore.getSnapshot(countryIso3);
+    installationStore.setSpentSiloIds(savedGameState?.spentSiloIds ?? []);
+    navalSimulation.loadState(savedGameState?.naval ?? null);
+    radarSimulation.loadState(savedGameState?.radar ?? null);
+    strategicSimulation.loadState(
+      savedGameState?.strategic ?? null,
+      installationStore.getStrategicDomesticBases(countryIso3),
+      strategicBootstrap,
+    );
+    if (savedGameState?.logistics) {
+      logisticsSimulation.loadState(savedGameState.logistics);
+    }
+    if (savedGameState?.deployment) {
+      deploymentSimulation.loadState(savedGameState.deployment);
+    }
+    if (savedGameState?.disruption) {
+      disruptionSimulation.loadState(savedGameState.disruption);
+    }
+    if (savedGameState?.intercept) {
+      interceptSimulation.loadState(savedGameState.intercept);
+    }
+    if (savedGameState?.ai) {
+      strategicAiSimulation.loadState(savedGameState.ai);
+    }
+    if (savedGameState?.events) {
+      campaignEvents.loadState(savedGameState.events);
+    }
+    selectedIndustrialProjectId = null;
+    strategicPlacementPreview = null;
+    resetBattleInputs();
+    requestRender();
+  }
+
   sceneContext.controls.addEventListener('change', requestRender);
   sceneContext.renderer.domElement.addEventListener('pointerdown', handlePointerDown);
+  sceneContext.renderer.domElement.addEventListener('pointermove', handlePointerMove);
+  sceneContext.renderer.domElement.addEventListener('pointerleave', handlePointerLeave);
   sceneContext.renderer.domElement.addEventListener('wheel', handleWheel, { passive: false });
   window.addEventListener('resize', handleResize);
   window.addEventListener('keydown', handleKeydown);
@@ -788,13 +1267,39 @@ export async function createApplication({
       installationStore.setActiveCountry(activeCountryIso3);
     }
     missileOverlay.setGodView(godView);
-    missileOverlay.setPreviewCountry(session.started ? null : activeCountryIso3);
-    countryBorders.setActiveCountry(session.started ? activeCountryIso3 : null);
-    countryBorders.setPreviewCountry(session.started ? null : activeCountryIso3);
+    missileOverlay.setPreviewCountry(session.screen === 'nationSelect' ? activeCountryIso3 : null);
+    countryBorders.setActiveCountry(session.screen === 'inGame' ? activeCountryIso3 : null);
+    countryBorders.setPreviewCountry(session.screen === 'nationSelect' ? activeCountryIso3 : null);
     sceneContext.controls.enabled = session.started && !session.paused;
 
-    if (!session.started || countryChanged) {
-      resetBattleInputs();
+    if (!session.started) {
+      selectedIndustrialProjectId = null;
+      hoveredIndustrialProjectId = null;
+      strategicPlacementPreview = null;
+      resetRuntimeState();
+    }
+
+    if (session.started) {
+      if (
+        pendingSavedGameState &&
+        pendingSavedGameState?.session?.activeCountryIso3 === activeCountryIso3
+      ) {
+        applySavedGameState(pendingSavedGameState);
+        pendingSavedGameState = null;
+      } else {
+        const strategicSnapshot = strategicSimulation.getSnapshot();
+        if (
+          countryChanged ||
+          strategicSnapshot.status !== 'ready' ||
+          strategicSnapshot.country?.iso3 !== activeCountryIso3
+        ) {
+          radarSimulation.reset();
+          navalSimulation.reset();
+          installationStore.resetSpentSilos();
+          resetBattleInputs();
+          loadStrategicState(activeCountryIso3);
+        }
+      }
     }
 
     requestRender();
@@ -861,6 +1366,138 @@ export async function createApplication({
     sceneContext.resetView();
     requestRender();
   });
+  const detachBuildChipFactory = strategicHud.onBuildChipFactory(() => {
+    enterStrategicPlacementMode('chip_factory');
+  });
+  const detachBuildMilitaryFactory = strategicHud.onBuildMilitaryFactory(() => {
+    enterStrategicPlacementMode('military_factory');
+  });
+  const detachCancelPlacement = strategicHud.onCancelPlacement(() => {
+    strategicPlacementMode = null;
+    strategicPlacementPreview = null;
+    renderStrategicHud();
+    requestRender();
+  });
+  const detachUpgradeFactory = strategicHud.onUpgradeSelectedFactory(() => {
+    if (!selectedIndustrialProjectId) {
+      return;
+    }
+    const result = strategicSimulation.upgradeIndustrialProject(selectedIndustrialProjectId);
+    strategicSimulation.setNotification(
+      result.ok
+        ? `${result.project.label} upgraded to level ${result.project.upgradeLevel}.`
+        : result.reason ?? 'Unable to upgrade factory.',
+      result.ok ? 'info' : 'warning',
+    );
+    renderStrategicHud();
+    requestRender();
+  });
+  const detachToggleFactoryPaused = strategicHud.onToggleSelectedFactoryPaused(() => {
+    if (!selectedIndustrialProjectId) {
+      return;
+    }
+    const result = strategicSimulation.toggleIndustrialProjectPaused(selectedIndustrialProjectId);
+    strategicSimulation.setNotification(
+      result.ok
+        ? `${result.project.label} ${result.project.paused ? 'paused' : 'resumed'}.`
+        : result.reason ?? 'Unable to update factory state.',
+      result.ok ? 'info' : 'warning',
+    );
+    renderStrategicHud();
+    requestRender();
+  });
+  const detachCycleFactoryEmphasis = strategicHud.onCycleSelectedFactoryEmphasis(() => {
+    if (!selectedIndustrialProjectId) {
+      return;
+    }
+    const result = strategicSimulation.cycleIndustrialProjectEmphasis(selectedIndustrialProjectId);
+    strategicSimulation.setNotification(
+      result.ok
+        ? `${result.project.label} focus set to ${result.project.emphasis.replace('_', ' ')}.`
+        : result.reason ?? 'Unable to change factory focus.',
+      result.ok ? 'info' : 'warning',
+    );
+    renderStrategicHud();
+    requestRender();
+  });
+  const detachAddChipQueue = strategicHud.onAddChipQueue(() => {
+    const result = strategicSimulation.addProductionQueue('chip_factory');
+    strategicSimulation.setNotification(
+      result.ok
+        ? `${result.queue.recipe.name} queue added.`
+        : result.reason ?? 'Unable to add chip queue.',
+      result.ok ? 'info' : 'warning',
+    );
+    renderStrategicHud();
+    requestRender();
+  });
+  const detachAddMilitaryQueue = strategicHud.onAddMilitaryQueue(() => {
+    const result = strategicSimulation.addProductionQueue('military_factory');
+    strategicSimulation.setNotification(
+      result.ok
+        ? `${result.queue.recipe.name} queue added.`
+        : result.reason ?? 'Unable to add military queue.',
+      result.ok ? 'info' : 'warning',
+    );
+    renderStrategicHud();
+    requestRender();
+  });
+  const detachQueueAction = strategicHud.onQueueAction(({ action, queueId }) => {
+    const numericQueueId = Number.isNaN(Number(queueId)) ? queueId : Number(queueId);
+    let result = null;
+    if (action === 'cycle') {
+      result = strategicSimulation.cycleQueueRecipe(numericQueueId);
+    } else if (action === 'increase') {
+      result = strategicSimulation.adjustQueueTarget(numericQueueId, 1);
+    } else if (action === 'decrease') {
+      result = strategicSimulation.adjustQueueTarget(numericQueueId, -1);
+    } else if (action === 'up' || action === 'down') {
+      result = strategicSimulation.moveProductionQueue(numericQueueId, action);
+    } else if (action === 'remove') {
+      result = strategicSimulation.removeProductionQueue(numericQueueId);
+    }
+
+    if (!result) {
+      return;
+    }
+
+    const message = result.ok
+      ? formatQueueActionMessage(action, result.queue)
+      : result.reason ?? 'Unable to update queue.';
+    strategicSimulation.setNotification(message, result.ok ? 'info' : 'warning');
+    renderStrategicHud();
+    requestRender();
+  });
+  const detachTradeAction = strategicHud.onTradeAction(
+    ({ action, producerCountryId, contractId, portId }) => {
+      let result = null;
+      if (action === 'sign') {
+        result = strategicSimulation.createTradeContract(Number(producerCountryId));
+      } else if (action === 'cancel') {
+        result = strategicSimulation.cancelTradeContract(contractId);
+      } else if (action === 'stabilize') {
+        result = strategicSimulation.stabilizeTradeContract(contractId);
+      } else if (action === 'upgrade-port') {
+        result = strategicSimulation.upgradePortInfrastructure(portId);
+      }
+      if (!result) {
+        return;
+      }
+
+      const message = result.ok
+        ? action === 'sign'
+          ? `${result.contract.producerName} oil contract activated.`
+          : action === 'cancel'
+            ? `${result.contract.producerName} oil contract cancelled.`
+            : action === 'stabilize'
+              ? `${result.contract.producerName} route stabilized.`
+              : `${result.port.name} expanded to level ${result.port.upgradeLevel}.`
+        : result.reason ?? 'Unable to update trade contract.';
+      strategicSimulation.setNotification(message, result.ok ? 'info' : 'warning');
+      renderStrategicHud();
+      requestRender();
+    },
+  );
 
   return {
     start() {
@@ -872,10 +1509,41 @@ export async function createApplication({
       clock.start();
       requestRender();
     },
+    queueSavedGameLoad(savedGameState) {
+      pendingSavedGameState = savedGameState ?? null;
+    },
+    captureSaveState() {
+      const session = sessionStore.getSnapshot();
+      if (!session.started || !activeCountryIso3) {
+        return null;
+      }
+
+      return {
+        session: {
+          activeCountryIso3,
+          godView,
+        },
+        strategic: strategicSimulation.serializeState(),
+        radar: radarSimulation.serializeState(),
+        naval: navalSimulation.serializeState(),
+        logistics: logisticsSimulation.serializeState(),
+        deployment: deploymentSimulation.serializeState(),
+        disruption: disruptionSimulation.serializeState(),
+        intercept: interceptSimulation.serializeState(),
+        ai: strategicAiSimulation.serializeState(),
+        events: campaignEvents.serializeState(),
+        spentSiloIds: installationStore.getSpentSiloIds(),
+      };
+    },
+    getSaveSummary() {
+      return strategicSimulation.getSaveSummary();
+    },
     dispose() {
       running = false;
       sceneContext.controls.removeEventListener('change', requestRender);
       sceneContext.renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
+      sceneContext.renderer.domElement.removeEventListener('pointermove', handlePointerMove);
+      sceneContext.renderer.domElement.removeEventListener('pointerleave', handlePointerLeave);
       sceneContext.renderer.domElement.removeEventListener('wheel', handleWheel);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeydown);
@@ -892,14 +1560,44 @@ export async function createApplication({
       detachViewBases();
       detachViewContext();
       detachReset();
+      detachBuildChipFactory();
+      detachBuildMilitaryFactory();
+      detachCancelPlacement();
+      detachUpgradeFactory();
+      detachToggleFactoryPaused();
+      detachCycleFactoryEmphasis();
+      detachAddChipQueue();
+      detachAddMilitaryQueue();
+      detachQueueAction();
+      detachTradeAction();
       detachSession();
       missileOverlay.dispose();
       countryBorders.dispose();
       cityLabels.dispose();
+      industrialOverlay.dispose();
+      tradeRouteOverlay.dispose();
+      hubOverlay.dispose();
+      supplyNetworkOverlay.dispose();
       radarVisualSystem.dispose();
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId);
       }
     },
   };
+
+  function formatQueueActionMessage(action, queue) {
+    if (action === 'cycle') {
+      return `Queue switched to ${queue.recipe.name}.`;
+    }
+    if (action === 'increase' || action === 'decrease') {
+      return `${queue.recipe.name} target set to ${queue.targetQuantity} batches.`;
+    }
+    if (action === 'up' || action === 'down') {
+      return `${queue.recipe.name} queue order updated.`;
+    }
+    if (action === 'remove') {
+      return `${queue.recipe.name} queue removed.`;
+    }
+    return 'Queue updated.';
+  }
 }

@@ -28,7 +28,8 @@ const concurrently = spawn(
     stdio: 'inherit',
     env: {
       ...process.env,
-      PORT: String(appPort),
+      APP_PORT: String(appPort),
+      PORT: String(serverPort),
       CLIENT_ORIGIN: clientOrigin,
     },
   },

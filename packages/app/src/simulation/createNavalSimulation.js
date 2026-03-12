@@ -1,9 +1,10 @@
 export function createNavalSimulation({ worldConfig: _worldConfig }) {
   const packages = [];
+  let nextGeneratedId = 1;
 
   function createPackage({ lat, lon, shipsConfig }) {
     const pkg = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: `naval-package-${nextGeneratedId}`,
       lat,
       lon,
       targetLat: lat,
@@ -16,6 +17,7 @@ export function createNavalSimulation({ worldConfig: _worldConfig }) {
       })),
       isMoving: false,
     };
+    nextGeneratedId += 1;
     packages.push(pkg);
     return pkg;
   }
@@ -73,6 +75,41 @@ export function createNavalSimulation({ worldConfig: _worldConfig }) {
     orderMove,
     step,
     getSnapshot,
+    reset() {
+      packages.length = 0;
+      nextGeneratedId = 1;
+    },
+    serializeState() {
+      return {
+        packages: packages.map((pkg) => ({
+          id: pkg.id,
+          lat: pkg.lat,
+          lon: pkg.lon,
+          targetLat: pkg.targetLat,
+          targetLon: pkg.targetLon,
+          speedKnots: pkg.speedKnots,
+          isMoving: pkg.isMoving,
+          ships: pkg.ships.map((ship) => ({ ...ship })),
+        })),
+      };
+    },
+    loadState(serializedState = null) {
+      packages.length = 0;
+      nextGeneratedId = 1;
+      for (const pkg of serializedState?.packages ?? []) {
+        packages.push({
+          id: pkg.id,
+          lat: pkg.lat,
+          lon: pkg.lon,
+          targetLat: pkg.targetLat,
+          targetLon: pkg.targetLon,
+          speedKnots: pkg.speedKnots,
+          isMoving: Boolean(pkg.isMoving),
+          ships: (pkg.ships ?? []).map((ship) => ({ ...ship })),
+        });
+        nextGeneratedId += 1;
+      }
+    },
     // Stubs for capabilities
     launchPlanes: (pkgId, shipIndex, target) => {
       console.log('Planes launched from', pkgId, shipIndex, 'to', target);

@@ -182,6 +182,42 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
         geoSlots: GEO_SLOTS.map((slot) => ({ ...slot })),
       };
     },
+    reset() {
+      groundRadars.length = 0;
+      satellites.length = 0;
+      launches.length = 0;
+      nextGroundRadarId = 1;
+      nextSatelliteId = 1;
+      nextLaunchId = 1;
+    },
+    serializeState() {
+      return {
+        groundRadars: groundRadars.map((radar) => ({ ...radar })),
+        satellites: satellites.map((satellite) => serializeSatellite(satellite)),
+        launches: launches.map((launch) => serializeLaunch(launch)),
+      };
+    },
+    loadState(serializedState = null) {
+      groundRadars.length = 0;
+      satellites.length = 0;
+      launches.length = 0;
+      nextGroundRadarId = 1;
+      nextSatelliteId = 1;
+      nextLaunchId = 1;
+
+      for (const radar of serializedState?.groundRadars ?? []) {
+        groundRadars.push({ ...radar });
+        nextGroundRadarId += 1;
+      }
+      for (const satellite of serializedState?.satellites ?? []) {
+        satellites.push(deserializeSatellite(satellite));
+        nextSatelliteId += 1;
+      }
+      for (const launch of serializedState?.launches ?? []) {
+        launches.push(deserializeLaunch(launch));
+        nextLaunchId += 1;
+      }
+    },
   };
 }
 
@@ -571,4 +607,108 @@ function clampVectorMagnitude(vector, maxLength) {
     return vector;
   }
   return vector.normalize().multiplyScalar(maxLength);
+}
+
+function serializeVector(vector) {
+  return { x: vector.x, y: vector.y, z: vector.z };
+}
+
+function deserializeVector(vector) {
+  return new THREE.Vector3(vector?.x ?? 0, vector?.y ?? 0, vector?.z ?? 0);
+}
+
+function serializeSatellite(satellite) {
+  return {
+    id: satellite.id,
+    countryIso3: satellite.countryIso3,
+    slotLongitude: satellite.slotLongitude,
+    spaceport: { ...satellite.spaceport },
+    footprintRadiusKm: satellite.footprintRadiusKm,
+    initialEarthRotationRadians: satellite.initialEarthRotationRadians,
+    flightTimeSeconds: satellite.flightTimeSeconds,
+    sampleElapsed: satellite.sampleElapsed,
+    phase: satellite.phase,
+    stageLabel: satellite.stageLabel,
+    operational: satellite.operational,
+    position: serializeVector(satellite.position),
+    velocity: serializeVector(satellite.velocity),
+    attitudeDirection: serializeVector(satellite.attitudeDirection),
+  };
+}
+
+function deserializeSatellite(satellite) {
+  return {
+    id: satellite.id,
+    countryIso3: satellite.countryIso3,
+    slotLongitude: satellite.slotLongitude,
+    spaceport: { ...satellite.spaceport },
+    footprintRadiusKm: satellite.footprintRadiusKm,
+    initialEarthRotationRadians: satellite.initialEarthRotationRadians,
+    flightTimeSeconds: satellite.flightTimeSeconds,
+    sampleElapsed: satellite.sampleElapsed,
+    phase: satellite.phase,
+    stageLabel: satellite.stageLabel,
+    operational: Boolean(satellite.operational),
+    position: deserializeVector(satellite.position),
+    velocity: deserializeVector(satellite.velocity),
+    attitudeDirection: deserializeVector(satellite.attitudeDirection),
+  };
+}
+
+function serializeLaunch(launch) {
+  return {
+    id: launch.id,
+    countryIso3: launch.countryIso3,
+    slotLongitude: launch.slotLongitude,
+    spaceport: { ...launch.spaceport },
+    state: {
+      countryIso3: launch.state.countryIso3,
+      slotLongitude: launch.state.slotLongitude,
+      spaceport: { ...launch.state.spaceport },
+      initialEarthRotationRadians: launch.state.initialEarthRotationRadians,
+      flightTimeSeconds: launch.state.flightTimeSeconds,
+      sequenceIndex: launch.state.sequenceIndex,
+      sequenceTimeSeconds: launch.state.sequenceTimeSeconds,
+      sampleElapsed: launch.state.sampleElapsed,
+      stageIndex: launch.state.stageIndex,
+      stageLabel: launch.state.stageLabel,
+      phase: launch.state.phase,
+      engineOn: launch.state.engineOn,
+      fairingSeparated: launch.state.fairingSeparated,
+      launchAzimuth: serializeVector(launch.state.launchAzimuth),
+      position: serializeVector(launch.state.position),
+      velocity: serializeVector(launch.state.velocity),
+      attitudeDirection: serializeVector(launch.state.attitudeDirection),
+      path: launch.state.path.map((point) => serializeVector(point)),
+    },
+  };
+}
+
+function deserializeLaunch(launch) {
+  return {
+    id: launch.id,
+    countryIso3: launch.countryIso3,
+    slotLongitude: launch.slotLongitude,
+    spaceport: { ...launch.spaceport },
+    state: {
+      countryIso3: launch.state.countryIso3,
+      slotLongitude: launch.state.slotLongitude,
+      spaceport: { ...launch.state.spaceport },
+      initialEarthRotationRadians: launch.state.initialEarthRotationRadians,
+      flightTimeSeconds: launch.state.flightTimeSeconds,
+      sequenceIndex: launch.state.sequenceIndex,
+      sequenceTimeSeconds: launch.state.sequenceTimeSeconds,
+      sampleElapsed: launch.state.sampleElapsed,
+      stageIndex: launch.state.stageIndex,
+      stageLabel: launch.state.stageLabel,
+      phase: launch.state.phase,
+      engineOn: Boolean(launch.state.engineOn),
+      fairingSeparated: Boolean(launch.state.fairingSeparated),
+      launchAzimuth: deserializeVector(launch.state.launchAzimuth),
+      position: deserializeVector(launch.state.position),
+      velocity: deserializeVector(launch.state.velocity),
+      attitudeDirection: deserializeVector(launch.state.attitudeDirection),
+      path: (launch.state.path ?? []).map((point) => deserializeVector(point)),
+    },
+  };
 }

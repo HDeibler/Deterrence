@@ -8,6 +8,41 @@
   </head>
   <body>
     <main class="app-shell">
+      <section id="mainMenuOverlay" class="menu-overlay">
+        <div class="menu-card">
+          <p class="eyebrow">Deterrence</p>
+          <h2>Main Menu</h2>
+          <p class="menu-copy">
+            Start a new strategic simulation or resume the current saved campaign.
+          </p>
+          <div class="menu-actions">
+            <button id="mainMenuNewGameButton" class="menu-primary" type="button">New Game</button>
+            <button id="mainMenuResumeButton" class="menu-secondary" type="button">
+              Resume Game
+            </button>
+          </div>
+          <section id="savedGameSummaryCard" class="save-summary-card" hidden>
+            <p class="eyebrow">Saved Campaign</p>
+            <h3 id="savedGameCountryValue">No Save</h3>
+            <p id="savedGameDateValue" class="menu-copy">No saved campaign available</p>
+            <div class="save-summary-grid">
+              <div class="metric">
+                <span class="label">Treasury</span>
+                <strong id="savedGameTreasuryValue">-</strong>
+              </div>
+              <div class="metric">
+                <span class="label">Resources</span>
+                <strong id="savedGameResourcesValue">-</strong>
+              </div>
+              <div class="metric save-summary-wide">
+                <span class="label">Assets</span>
+                <strong id="savedGameAssetsValue">-</strong>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
       <div class="view-card" aria-label="View toggles">
         <div class="view-strip">
           <button id="viewLaunchToggle" class="view-chip" type="button">
@@ -269,6 +304,132 @@
         </div>
       </section>
 
+      <section class="campaign-strip" aria-label="Campaign status">
+        <div class="campaign-pill">
+          <span class="label">Game Date</span>
+          <strong id="strategicDateValue">-</strong>
+        </div>
+        <div class="campaign-pill">
+          <span class="label">Treasury</span>
+          <strong id="strategicTreasuryValue">-</strong>
+        </div>
+        <div class="campaign-pill">
+          <span class="label">Net Flow</span>
+          <strong id="strategicFinanceValue">-</strong>
+        </div>
+      </section>
+
+      <aside id="strategicPanel" class="strategic-panel" aria-label="Strategic economy">
+        <div class="strategic-panel-header">
+          <p class="eyebrow">Command</p>
+          <h2 id="strategicCountryValue">No Active Nation</h2>
+          <p id="strategicStatusValue" class="strategic-status">
+            Select a playable country to load strategic state
+          </p>
+        </div>
+        <section class="strategic-section">
+          <header>
+            <h3>Play Loop</h3>
+          </header>
+          <article class="strategic-callout">
+            <strong id="strategicHeadlineValue">Build economy -> fill bases -> project force</strong>
+            <p id="strategicProblemValue">Select a country to begin.</p>
+            <small id="strategicNextActionValue">Open a new game and pick a nation.</small>
+          </article>
+          <div id="strategicObjectiveList" class="strategic-list strategic-section-spaced"></div>
+        </section>
+        <section class="strategic-section strategic-section-spaced">
+          <header>
+            <h3>Build</h3>
+          </header>
+          <div class="strategic-build-grid">
+            <button id="strategicBuildChipFactoryButton" class="strategic-action-button" type="button">
+              <span>Place Chip Factory</span>
+              <small id="strategicBuildChipFactoryMeta">-</small>
+            </button>
+            <button
+              id="strategicBuildMilitaryFactoryButton"
+              class="strategic-action-button"
+              type="button"
+            >
+              <span>Place Military Factory</span>
+              <small id="strategicBuildMilitaryFactoryMeta">-</small>
+            </button>
+          </div>
+          <button id="strategicCancelPlacementButton" class="strategic-cancel-button" type="button" hidden>
+            Cancel Placement
+          </button>
+          <p id="strategicPlacementHint" class="strategic-hint">
+            Build actions place new domestic industry on the map.
+          </p>
+        </section>
+        <section class="strategic-section strategic-section-spaced">
+          <header>
+            <h3>Industry</h3>
+          </header>
+          <article id="strategicSelectionCard" class="strategic-selection-card" hidden>
+            <header>
+              <strong id="strategicSelectionTitle">No Factory Selected</strong>
+              <span id="strategicSelectionBonus">-</span>
+            </header>
+            <p id="strategicSelectionBody">Select a factory marker on the globe to inspect it.</p>
+            <small id="strategicSelectionMeta">-</small>
+            <div class="strategic-selection-actions">
+              <button id="strategicSelectionUpgradeButton" class="strategic-mini-button" type="button">
+                Upgrade
+              </button>
+              <button id="strategicSelectionPauseButton" class="strategic-mini-button" type="button">
+                Pause
+              </button>
+              <button id="strategicSelectionEmphasisButton" class="strategic-mini-button" type="button">
+                Change Focus
+              </button>
+            </div>
+          </article>
+          <div id="strategicIndustryList" class="strategic-list"></div>
+        </section>
+        <section class="strategic-section strategic-section-spaced">
+          <header>
+            <h3>Resources</h3>
+          </header>
+          <div id="strategicResourceList" class="strategic-list"></div>
+        </section>
+        <section class="strategic-section strategic-section-spaced">
+          <header>
+            <h3>Trade</h3>
+          </header>
+          <div id="strategicTradePortList" class="strategic-list"></div>
+          <div id="strategicTradeContractList" class="strategic-list"></div>
+          <div id="strategicTradeProducerList" class="strategic-list strategic-section-spaced"></div>
+        </section>
+        <section class="strategic-section strategic-section-spaced">
+          <header>
+            <h3>Deployment</h3>
+          </header>
+          <div class="strategic-summary">
+            <div class="metric strategic-metric-wide strategic-metric-tall">
+              <span class="label">National Reserve</span>
+              <strong id="strategicReserveValue">-</strong>
+            </div>
+          </div>
+          <div id="strategicBaseList" class="strategic-list strategic-section-spaced"></div>
+        </section>
+        <section class="strategic-section strategic-section-spaced">
+          <header>
+            <h3>Queues</h3>
+          </header>
+          <div class="strategic-queue-toolbar">
+            <button id="strategicAddChipQueueButton" class="strategic-mini-button" type="button">
+              Add Chip Queue
+            </button>
+            <button id="strategicAddMilitaryQueueButton" class="strategic-mini-button" type="button">
+              Add Military Queue
+            </button>
+          </div>
+          <div id="strategicQueueList" class="strategic-list"></div>
+        </section>
+      </aside>
+
       <div id="sceneRoot" class="scene-root" aria-label="3D Earth simulation"></div>
 
       <section id="nationSelectOverlay" class="menu-overlay">
@@ -280,7 +441,10 @@
             Enter to lock in the highlighted nation.
           </p>
           <div id="nationSelectOptions" class="nation-options" aria-label="Playable nations"></div>
-          <button id="nationStartButton" class="menu-primary" type="button">Enter Battle</button>
+          <div class="menu-actions">
+            <button id="nationStartButton" class="menu-primary" type="button">Enter Battle</button>
+            <button id="backToMainMenuButton" class="menu-secondary" type="button">Back</button>
+          </div>
           <p id="devModeBadge" class="menu-badge" hidden>
             Development mode active: env defaults and keypad 9 god view are enabled.
           </p>
@@ -305,6 +469,7 @@
           <p id="settingsStatusText" class="menu-copy">Country view enabled</p>
           <div class="menu-actions">
             <button id="resumeGameButton" class="menu-primary" type="button">Resume</button>
+            <button id="saveQuitButton" class="menu-secondary" type="button">Save & Quit</button>
           </div>
         </div>
       </section>

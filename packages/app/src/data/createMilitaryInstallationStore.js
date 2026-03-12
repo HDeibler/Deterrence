@@ -1,3 +1,5 @@
+import { buildDomesticBaseNetwork, deriveBaseType } from '../game/data/baseCapabilityCatalog.js';
+
 const API_PORT = import.meta.env.VITE_API_PORT ?? '3000';
 const LAUNCH_SITE_TYPES = [
   'missile_launch_facility',
@@ -47,6 +49,12 @@ export function createMilitaryInstallationStore({ window, requestRender }) {
     getCountrySites(iso3) {
       return sitesByCountry[iso3] ?? [];
     },
+    getStrategicDomesticBases(iso3) {
+      return buildDomesticBaseNetwork({
+        countryIso3: iso3,
+        installations: sitesByCountry[iso3] ?? [],
+      });
+    },
     getActiveCategory() {
       return activeCategory;
     },
@@ -71,6 +79,16 @@ export function createMilitaryInstallationStore({ window, requestRender }) {
     },
     getAvailableCountries() {
       return Object.keys(sitesByCountry).sort();
+    },
+    getSpentSiloIds() {
+      return [...spentSiloIds];
+    },
+    setSpentSiloIds(siteIds = []) {
+      spentSiloIds.clear();
+      for (const siteId of siteIds) {
+        spentSiloIds.add(siteId);
+      }
+      requestRender?.();
     },
     markSiloSpent(siteId) {
       spentSiloIds.add(siteId);
@@ -129,6 +147,7 @@ export function createMilitaryInstallationStore({ window, requestRender }) {
           countryIso3: site.countryIso3,
           installationType: site.installationType,
           category: CATEGORY_MAP[site.installationType] ?? 'airbase',
+          baseType: deriveBaseType({ category: CATEGORY_MAP[site.installationType] ?? 'airbase' }),
           latitude: Number(site.latitude),
           longitude: Number(site.longitude),
           sourceRef: site.sourceRef,

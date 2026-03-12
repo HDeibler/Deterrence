@@ -456,19 +456,23 @@ These entities should support both persistence and simulation.
 Build:
 
 - baseline domestic production for `USA`, `CHN`, `RUS`
-- third-party oil and rare-earth producers
 - national stockpiles
+- national reserve and domestic base allocation
 - chip factory and asset factory queues
+- player factory placement on the world map
 - financial income / expense breakdown
+- local save / resume flow
+- tactical consumption of strategic inventory
 
 Goal:
 
-Make the economy visible and continuously changing.
+Make the domestic economy visible, continuously changing, and directly tied to tactical actions.
 
 ### Phase 2: Contracts And Imports
 
 Build:
 
+- third-party oil and rare-earth producers
 - trade agreements
 - import routes
 - resource inflow from third-party states
@@ -550,6 +554,90 @@ Recommended server modules:
 - `modules/contracts/`
 - `modules/economy/`
 - `modules/shipments/`
+
+## State Authority
+
+The project needs an explicit authority boundary before adding more logistics and factory management features.
+
+### Current Practical Rule
+
+For the current MVP:
+
+- the server is authoritative for bootstrap seed data
+- the client is authoritative for the live campaign simulation
+- save data is the authoritative persisted snapshot of the live campaign
+
+This is acceptable for the current phase because the game is still single-player and local-first.
+
+### Required Future Rule
+
+As logistics, contracts, and war-economy effects expand, the simulation should be organized around a stable campaign snapshot model rather than around ad hoc UI state.
+
+Suggested top-level persisted state:
+
+- `CampaignState`
+- `StrategicState`
+- `BaseNetworkState`
+- `FactoryState`
+- `TacticalState`
+
+The key point is that all runtime systems should derive from and serialize back into these stable state objects rather than owning incompatible local truth.
+
+## Base Normalization Rule
+
+The real-world military installation dataset is source data, not the final gameplay model.
+
+Implementation rule:
+
+- installations remain the canonical geographic source
+- gameplay bases are normalized runtime entities derived from installations
+- capability rules determine what each derived base can store, deploy, and sustain
+
+This avoids binding every gameplay mechanic directly to raw installation categories.
+
+### Practical Interpretation
+
+The existing installation dataset should map into gameplay nouns such as:
+
+- `Base`
+- `Hub`
+- `ForwardBase`
+- `Spaceport`
+- `SiloBase`
+
+Those normalized entities should then own:
+
+- storage compatibility
+- deployment compatibility
+- sustainment cost
+- throughput
+- capacity
+
+That mapping layer is mandatory before large-scale deployment and logistics features are added.
+
+## Economy To Force Chain
+
+The intended chain of authority should be explicit:
+
+- `IndustrialFacility -> NationalReserve -> Hub -> ForwardBase -> TacticalUse`
+
+For the current MVP, the implemented subset is:
+
+- `IndustrialFacility -> NationalReserve -> DomesticBase -> TacticalUse`
+
+This is the correct simplification for the current phase. Cross-border movement and hub logistics should extend this chain later rather than replacing it.
+
+## Factory Management Before Full Logistics
+
+There is a useful intermediate step between simple factory placement and full logistics gameplay.
+
+Before adding hub logistics, selected industrial facilities should support constrained management actions such as:
+
+- upgrade throughput
+- pause production contribution
+- reassign output emphasis
+
+This preserves momentum in the strategic layer without prematurely introducing shipment complexity.
 
 ## Success Criteria
 
