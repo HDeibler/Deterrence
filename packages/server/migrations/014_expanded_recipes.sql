@@ -1,3 +1,13 @@
+-- Expand the output_type CHECK to allow 'asset' for deployable unit recipes.
+ALTER TABLE strategic_recipes DROP CONSTRAINT IF EXISTS chk_strategic_recipe_output_type;
+ALTER TABLE strategic_recipes ADD CONSTRAINT chk_strategic_recipe_output_type
+  CHECK (output_type IN ('resource', 'inventory', 'asset'));
+
+-- Also expand facility_type to allow 'shipyard' for future naval production.
+ALTER TABLE strategic_recipes DROP CONSTRAINT IF EXISTS chk_strategic_recipe_facility_type;
+ALTER TABLE strategic_recipes ADD CONSTRAINT chk_strategic_recipe_facility_type
+  CHECK (facility_type IN ('chip_factory', 'military_factory', 'shipyard'));
+
 -- Expanded recipe catalog: cruisers, submarines, cargo planes, oil tankers,
 -- fighters, interceptors, launch vehicles, and orbital-watch payloads.
 INSERT INTO strategic_recipes
