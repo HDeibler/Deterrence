@@ -5,6 +5,7 @@ import { env } from './config/env.js';
 import { countryRoutes } from './routes/countryRoutes.js';
 import { countryAttributeDefinitionRoutes } from './routes/countryAttributeDefinitionRoutes.js';
 import { militaryInstallationRoutes } from './routes/militaryInstallationRoutes.js';
+import { hubRoutes } from './routes/hubRoutes.js';
 
 const app = express();
 app.use(express.json());
@@ -31,6 +32,7 @@ app.get('/health', async (_request, response, next) => {
 app.use('/countries', countryRoutes);
 app.use('/country-attribute-definitions', countryAttributeDefinitionRoutes);
 app.use('/military-installations', militaryInstallationRoutes);
+app.use('/hubs', hubRoutes);
 
 app.use((error, _request, response, _next) => {
   const statusCode = error.statusCode ?? 500;
