@@ -33,10 +33,9 @@ const BASE_CAPACITY = {
   silo_base: { missile_inventory: 1 },
 };
 
-let nextId = 1;
-
 export function createDeploymentSimulation() {
   let state = createInitialState();
+  let nextId = 1;
 
   function step(deltaSeconds) {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) {
@@ -78,12 +77,20 @@ export function createDeploymentSimulation() {
     return JSON.parse(JSON.stringify(state));
   }
 
-  function loadState(serialized) {
+  function loadState(serialized = null) {
+    if (!serialized) {
+      state = createInitialState();
+      nextId = 1;
+      return;
+    }
     state = JSON.parse(JSON.stringify(serialized));
+    const maxId = state.deployments.reduce((max, d) => Math.max(max, Number(String(d.id).replace(/\D/g, '')) || 0), 0);
+    nextId = maxId + 1;
   }
 
   function reset() {
     state = createInitialState();
+    nextId = 1;
   }
 
   function deployAssets(hubId, baseId, assetType, quantity) {

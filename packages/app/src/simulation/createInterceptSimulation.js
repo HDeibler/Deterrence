@@ -27,7 +27,7 @@ export function createInterceptSimulation() {
           interceptorType: base.interceptorType,
           ammo: base.ammo,
           ammoPercent:
-            base.ammo > 0
+            base.interceptorCount > 0
               ? Math.round((base.ammo / (base.interceptorCount * DEFAULT_AMMO_PER_INTERCEPTOR)) * 100)
               : 0,
         })),
@@ -50,16 +50,23 @@ export function createInterceptSimulation() {
       return JSON.parse(JSON.stringify(state));
     },
 
-    loadState(serialized) {
+    loadState(serialized = null) {
+      if (!serialized) {
+        state = createInitialState();
+        return;
+      }
       state = {
-        ready: serialized.ready,
-        interceptorBases: serialized.interceptorBases.map((base) => ({ ...base })),
-        engagementQueue: serialized.engagementQueue.map((engagement) => ({ ...engagement })),
-        engagementResults: serialized.engagementResults.map((result) => ({ ...result })),
-        totalEngagements: serialized.totalEngagements,
-        totalInterceptions: serialized.totalInterceptions,
-        totalMisses: serialized.totalMisses,
-        maintenanceDrain: { ...serialized.maintenanceDrain },
+        ready: serialized.ready ?? false,
+        interceptorBases: (serialized.interceptorBases ?? []).map((base) => ({ ...base })),
+        engagementQueue: (serialized.engagementQueue ?? []).map((engagement) => ({ ...engagement })),
+        engagementResults: (serialized.engagementResults ?? []).map((result) => ({ ...result })),
+        totalEngagements: serialized.totalEngagements ?? 0,
+        totalInterceptions: serialized.totalInterceptions ?? 0,
+        totalMisses: serialized.totalMisses ?? 0,
+        maintenanceDrain: {
+          oil: serialized.maintenanceDrain?.oil ?? 0,
+          chips: serialized.maintenanceDrain?.chips ?? 0,
+        },
       };
     },
 

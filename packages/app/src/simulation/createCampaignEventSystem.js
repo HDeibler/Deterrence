@@ -47,7 +47,8 @@ export function createCampaignEventSystem() {
       let triggered = false;
       try {
         triggered = template.trigger(worldState);
-      } catch (_error) {
+      } catch (error) {
+        console.error(`Event template "${template.id}" trigger threw:`, error);
         continue;
       }
 

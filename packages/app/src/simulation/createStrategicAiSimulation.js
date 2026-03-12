@@ -34,8 +34,8 @@ export function createStrategicAiSimulation() {
         return;
       }
 
-      state.timeSinceLastEvaluation = 0;
       runEvaluationCycle();
+      state.timeSinceLastEvaluation = 0;
     },
 
     getSnapshot() {
@@ -51,11 +51,32 @@ export function createStrategicAiSimulation() {
     },
 
     serializeState() {
-      return JSON.parse(JSON.stringify(state));
+      return {
+        ready: state.ready,
+        evaluationInterval: state.evaluationInterval,
+        timeSinceLastEvaluation: state.timeSinceLastEvaluation,
+        countryStates: JSON.parse(JSON.stringify(state.countryStates)),
+        pendingPriceChanges: state.pendingPriceChanges.map((c) => ({ ...c })),
+        pendingPostureChanges: state.pendingPostureChanges.map((c) => ({ ...c })),
+        pendingAccessDecisions: state.pendingAccessDecisions.map((d) => ({ ...d })),
+        aiBuildOrders: state.aiBuildOrders.map((o) => ({ ...o })),
+      };
     },
 
-    loadState(serialized) {
-      state = serialized;
+    loadState(serialized = null) {
+      if (!serialized) {
+        state = createInitialState();
+        return;
+      }
+      state.ready = false;
+      state.evaluationInterval = serialized.evaluationInterval ?? 3600;
+      state.timeSinceLastEvaluation = serialized.timeSinceLastEvaluation ?? 0;
+      state.countryStates = serialized.countryStates ?? {};
+      state.pendingPriceChanges = serialized.pendingPriceChanges ?? [];
+      state.pendingPostureChanges = serialized.pendingPostureChanges ?? [];
+      state.pendingAccessDecisions = serialized.pendingAccessDecisions ?? [];
+      state.aiBuildOrders = serialized.aiBuildOrders ?? [];
+      state.worldState = null;
     },
 
     reset() {

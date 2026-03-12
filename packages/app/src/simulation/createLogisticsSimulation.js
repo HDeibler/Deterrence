@@ -88,6 +88,7 @@ export function createLogisticsSimulation() {
             );
             route.pendingDelivery -= lost;
           }
+          route.pendingDelivery = Math.max(route.pendingDelivery, 0);
         }
       }
     },
@@ -127,7 +128,12 @@ export function createLogisticsSimulation() {
       };
     },
 
-    loadState(serialized) {
+    loadState(serialized = null) {
+      if (!serialized) {
+        state = createInitialState();
+        nextRouteId = 1;
+        return;
+      }
       state = {
         ready: serialized.ready ?? false,
         hubs: (serialized.hubs ?? []).map(normalizeHub),
