@@ -33,6 +33,21 @@
         </div>
       </div>
 
+      <section class="campaign-strip" aria-label="Campaign status">
+        <div class="campaign-pill">
+          <span class="label">Game Date</span>
+          <strong id="strategicDateValue">-</strong>
+        </div>
+        <div class="campaign-pill">
+          <span class="label">Treasury</span>
+          <strong id="strategicTreasuryValue">-</strong>
+        </div>
+        <div class="campaign-pill">
+          <span class="label">Net Flow</span>
+          <strong id="strategicFinanceValue">-</strong>
+        </div>
+      </section>
+
       <aside class="control-dock" aria-label="Simulation controls">
         <details class="control-section">
           <summary>
@@ -87,6 +102,131 @@
               <kbd>N</kbd>
               <span id="navalToggleLabel">Naval Mode</span>
             </button>
+          </div>
+        </details>
+
+        <!-- Strategy section -->
+        <details class="control-section" id="strategyAccordion">
+          <summary>
+            <span>Strategy</span>
+            <small id="strategySummaryLabel">-</small>
+          </summary>
+          <div class="control-body">
+            <div class="strategic-callout">
+              <strong id="strategicHeadlineValue"
+                >Build economy -> fill bases -> project force</strong
+              >
+              <p id="strategicProblemValue">Select a country to begin.</p>
+              <small id="strategicNextActionValue"
+                >Open a new game and pick a nation.</small
+              >
+            </div>
+            <div id="strategicObjectiveList" class="strategic-compact-list"></div>
+          </div>
+        </details>
+
+        <!-- Industry section -->
+        <details class="control-section" id="industryAccordion">
+          <summary>
+            <span>Industry</span>
+            <small id="industrySummaryLabel">-</small>
+          </summary>
+          <div class="control-body">
+            <div class="strategic-build-row">
+              <button
+                id="strategicBuildChipFactoryButton"
+                class="strategic-compact-button"
+                type="button"
+              >
+                <span>Chip Factory</span>
+                <small id="strategicBuildChipFactoryMeta">-</small>
+              </button>
+              <button
+                id="strategicBuildMilitaryFactoryButton"
+                class="strategic-compact-button"
+                type="button"
+              >
+                <span>Mil. Factory</span>
+                <small id="strategicBuildMilitaryFactoryMeta">-</small>
+              </button>
+            </div>
+            <button
+              id="strategicCancelPlacementButton"
+              class="strategic-compact-cancel"
+              type="button"
+              hidden
+            >
+              Cancel
+            </button>
+            <p id="strategicPlacementHint" class="strategic-compact-hint"></p>
+            <article id="strategicSelectionCard" class="strategic-selection-compact" hidden>
+              <header>
+                <strong id="strategicSelectionTitle">-</strong>
+                <span id="strategicSelectionBonus">-</span>
+              </header>
+              <p id="strategicSelectionBody">-</p>
+              <small id="strategicSelectionMeta">-</small>
+              <div class="strategic-compact-actions">
+                <button id="strategicSelectionUpgradeButton" class="strategic-micro-button" type="button">Upgrade</button>
+                <button id="strategicSelectionPauseButton" class="strategic-micro-button" type="button">Pause</button>
+                <button id="strategicSelectionEmphasisButton" class="strategic-micro-button" type="button">Focus</button>
+              </div>
+            </article>
+            <div id="strategicIndustryList" class="strategic-compact-list"></div>
+          </div>
+        </details>
+
+        <!-- Resources section -->
+        <details class="control-section" id="resourcesAccordion">
+          <summary>
+            <span>Resources</span>
+            <small id="resourcesSummaryLabel">-</small>
+          </summary>
+          <div class="control-body">
+            <div id="strategicResourceList" class="strategic-compact-list"></div>
+          </div>
+        </details>
+
+        <!-- Trade section -->
+        <details class="control-section" id="tradeAccordion">
+          <summary>
+            <span>Trade</span>
+            <small id="tradeSummaryLabel">-</small>
+          </summary>
+          <div class="control-body">
+            <div id="strategicTradeProducerList" class="strategic-compact-list"></div>
+            <div id="strategicTradeContractList" class="strategic-compact-list"></div>
+            <div id="strategicTradePortList" class="strategic-compact-list"></div>
+          </div>
+        </details>
+
+        <!-- Deployment section -->
+        <details class="control-section" id="deploymentAccordion">
+          <summary>
+            <span>Deployment</span>
+            <small id="deploymentSummaryLabel">-</small>
+          </summary>
+          <div class="control-body">
+            <div class="strategic-compact-reserve">
+              <span class="label">National Reserve</span>
+              <strong id="strategicReserveValue">-</strong>
+            </div>
+            <div id="strategicBaseList" class="strategic-compact-list"></div>
+          </div>
+        </details>
+
+        <!-- Production section -->
+        <details class="control-section" id="productionAccordion">
+          <summary>
+            <span>Production</span>
+            <small id="productionSummaryLabel">-</small>
+          </summary>
+          <div class="control-body">
+            <div class="strategic-compact-actions">
+              <button id="strategicAddChipQueueButton" class="strategic-micro-button" type="button">+ Chip Queue</button>
+              <button id="strategicAddMilitaryQueueButton" class="strategic-micro-button" type="button">+ Mil. Queue</button>
+            </div>
+            <div id="strategicQueueList" class="strategic-compact-list"></div>
           </div>
         </details>
 
