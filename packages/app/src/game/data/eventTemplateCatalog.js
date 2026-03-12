@@ -1,0 +1,143 @@
+export const EVENT_SEVERITY = {
+  INFO: 'info',
+  WARNING: 'warning',
+  CRITICAL: 'critical',
+  OPPORTUNITY: 'opportunity',
+};
+
+export const EVENT_TEMPLATES = [
+  // Resource warnings
+  {
+    id: 'oil_stockpile_low',
+    title: 'Oil Reserves Critically Low',
+    detail: 'National oil stockpile has fallen below 30% capacity. Industrial output will begin declining.',
+    severity: EVENT_SEVERITY.CRITICAL,
+    category: 'resource',
+    trigger: (state) => state.resources?.oil?.ratio < 0.3,
+    cooldownHours: 24,
+  },
+  {
+    id: 'rare_earth_stockpile_low',
+    title: 'Rare Earth Shortage',
+    detail:
+      'Rare earth reserves are running low. Chip production and advanced manufacturing will be affected.',
+    severity: EVENT_SEVERITY.WARNING,
+    category: 'resource',
+    trigger: (state) => state.resources?.rare_earths?.ratio < 0.3,
+    cooldownHours: 24,
+  },
+  {
+    id: 'chips_stockpile_low',
+    title: 'Chip Supply Crisis',
+    detail: 'Semiconductor stockpile is dangerously low. Military production queues are stalling.',
+    severity: EVENT_SEVERITY.CRITICAL,
+    category: 'resource',
+    trigger: (state) => state.resources?.chips?.ratio < 0.2,
+    cooldownHours: 12,
+  },
+  // Trade events
+  {
+    id: 'trade_route_disrupted',
+    title: 'Supply Route Under Threat',
+    detail: 'A major trade route is experiencing disruption. Import throughput is degraded.',
+    severity: EVENT_SEVERITY.WARNING,
+    category: 'trade',
+    trigger: (state) => (state.trade?.disruptedRoutes ?? 0) > 0,
+    cooldownHours: 8,
+  },
+  {
+    id: 'port_congestion',
+    title: 'Port Congestion Alert',
+    detail: 'Import port utilization exceeds 90%. Consider upgrading port infrastructure.',
+    severity: EVENT_SEVERITY.WARNING,
+    category: 'trade',
+    trigger: (state) => (state.trade?.maxPortUtilization ?? 0) > 0.9,
+    cooldownHours: 12,
+  },
+  // Diplomatic / intelligence events
+  {
+    id: 'rival_military_buildup',
+    title: 'Intelligence Report: Rival Military Buildup',
+    detail: 'Intelligence indicates a rival power is accelerating military production.',
+    severity: EVENT_SEVERITY.WARNING,
+    category: 'intelligence',
+    trigger: (state) => state.ai?.rivalBuildupDetected ?? false,
+    cooldownHours: 48,
+  },
+  {
+    id: 'contract_price_spike',
+    title: 'Resource Price Increase',
+    detail: 'A key supplier has increased contract prices due to global scarcity.',
+    severity: EVENT_SEVERITY.WARNING,
+    category: 'trade',
+    trigger: (state) => state.ai?.priceSpike ?? false,
+    cooldownHours: 24,
+  },
+  {
+    id: 'access_agreement_threatened',
+    title: 'Basing Rights Under Review',
+    detail: 'A host nation is reconsidering basing access due to diplomatic tensions.',
+    severity: EVENT_SEVERITY.CRITICAL,
+    category: 'diplomacy',
+    trigger: (state) => state.diplomacy?.accessThreatened ?? false,
+    cooldownHours: 72,
+  },
+  // Opportunity events
+  {
+    id: 'new_trade_opportunity',
+    title: 'New Trade Partner Available',
+    detail: 'A resource-producing nation is seeking new trade agreements.',
+    severity: EVENT_SEVERITY.OPPORTUNITY,
+    category: 'trade',
+    trigger: (state) => state.trade?.newOpportunityAvailable ?? false,
+    cooldownHours: 48,
+  },
+  {
+    id: 'production_milestone',
+    title: 'Production Milestone',
+    detail: 'Military production queues have completed a significant batch of assets.',
+    severity: EVENT_SEVERITY.INFO,
+    category: 'production',
+    trigger: (state) => state.production?.milestoneReached ?? false,
+    cooldownHours: 12,
+  },
+  // War / damage events
+  {
+    id: 'infrastructure_damaged',
+    title: 'Infrastructure Damage Report',
+    detail: 'Enemy strikes have damaged critical infrastructure. Supply chains are affected.',
+    severity: EVENT_SEVERITY.CRITICAL,
+    category: 'damage',
+    trigger: (state) => (state.disruption?.activeDamageCount ?? 0) > 0,
+    cooldownHours: 4,
+  },
+  {
+    id: 'supply_chain_cascade',
+    title: 'Supply Chain Cascade Failure',
+    detail:
+      'Damage to upstream infrastructure is causing cascading shortages across multiple sectors.',
+    severity: EVENT_SEVERITY.CRITICAL,
+    category: 'damage',
+    trigger: (state) => state.disruption?.cascadeActive ?? false,
+    cooldownHours: 8,
+  },
+  // Base / deployment events
+  {
+    id: 'base_readiness_low',
+    title: 'Forward Base Readiness Declining',
+    detail: 'A forward-deployed base is losing operational readiness due to supply issues.',
+    severity: EVENT_SEVERITY.WARNING,
+    category: 'deployment',
+    trigger: (state) => (state.deployment?.lowReadinessBaseCount ?? 0) > 0,
+    cooldownHours: 12,
+  },
+  {
+    id: 'hub_capacity_full',
+    title: 'Hub Storage Near Capacity',
+    detail: 'A logistics hub is approaching maximum storage. Incoming shipments may be delayed.',
+    severity: EVENT_SEVERITY.INFO,
+    category: 'logistics',
+    trigger: (state) => state.logistics?.hubNearCapacity ?? false,
+    cooldownHours: 24,
+  },
+];
