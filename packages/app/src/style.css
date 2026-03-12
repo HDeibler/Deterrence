@@ -209,6 +209,14 @@ body::before {
   pointer-events: none;
 }
 
+.hub-overlay,
+.supply-network-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
 .hero-panel,
 .hud,
 .view-card,
