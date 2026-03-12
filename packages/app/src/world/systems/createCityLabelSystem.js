@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const CITY_DATA_URL = '/public/data/cities/world-cities-5000.json';
+const CITY_DATA_URL = '/data/cities/world-cities-5000.json';
 const LABEL_PROFILES = [
   {
     altitudeMaxKm: 300,
