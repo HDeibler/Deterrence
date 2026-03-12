@@ -643,7 +643,9 @@ body::before {
   background: rgba(98, 208, 255, 0.09);
 }
 
-.strategic-compact-button:disabled {
+.strategic-compact-button:disabled,
+.strategic-micro-button:disabled,
+.strategic-inline-button:disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -714,11 +716,6 @@ body::before {
   cursor: pointer;
   font: inherit;
   font-size: 0.72rem;
-}
-
-.strategic-micro-button:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 
 .strategic-compact-reserve {
@@ -809,11 +806,6 @@ body::before {
   cursor: pointer;
   font: inherit;
   font-size: 0.68rem;
-}
-
-.strategic-inline-button:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 
 canvas {
