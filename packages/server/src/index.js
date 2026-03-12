@@ -5,12 +5,13 @@ import { env } from './config/env.js';
 import { countryRoutes } from './routes/countryRoutes.js';
 import { countryAttributeDefinitionRoutes } from './routes/countryAttributeDefinitionRoutes.js';
 import { militaryInstallationRoutes } from './routes/militaryInstallationRoutes.js';
+import { campaignRoutes } from './routes/campaignRoutes.js';
 
 const app = express();
 app.use(express.json());
 app.use((request, response, next) => {
   response.header('Access-Control-Allow-Origin', env.clientOrigin);
-  response.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  response.header('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   response.header('Access-Control-Allow-Headers', 'Content-Type');
   if (request.method === 'OPTIONS') {
     response.sendStatus(204);
@@ -31,6 +32,7 @@ app.get('/health', async (_request, response, next) => {
 app.use('/countries', countryRoutes);
 app.use('/country-attribute-definitions', countryAttributeDefinitionRoutes);
 app.use('/military-installations', militaryInstallationRoutes);
+app.use('/campaigns', campaignRoutes);
 
 app.use((error, _request, response, _next) => {
   const statusCode = error.statusCode ?? 500;
