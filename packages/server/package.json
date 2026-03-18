@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file=.env src/index.js",
+    "dev": "node --env-file=.env --watch-path=src --watch src/index.js",
     "migrate": "node --env-file=.env src/runMigrations.js",
     "check": "node scripts/check-syntax.mjs",
     "lint": "eslint src --report-unused-disable-directives"

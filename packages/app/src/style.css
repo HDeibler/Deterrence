@@ -128,6 +128,62 @@ body::before {
   accent-color: var(--accent);
 }
 
+.scenario-section {
+  margin-top: 18px;
+  width: 100%;
+}
+
+.scenario-section .eyebrow {
+  margin-bottom: 8px;
+}
+
+.scenario-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.scenario-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: rgba(7, 16, 31, 0.5);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scenario-option:hover {
+  background: rgba(20, 40, 70, 0.6);
+  border-color: rgba(125, 228, 255, 0.3);
+}
+
+.scenario-option.selected {
+  border-color: rgba(125, 228, 255, 0.6);
+  background: rgba(20, 50, 90, 0.5);
+}
+
+.scenario-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.scenario-desc {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .menu-primary {
   margin-top: 22px;
   border: 0;
@@ -215,7 +271,7 @@ body::before {
 .control-dock,
 .menu-card {
   position: absolute;
-  z-index: 2;
+  z-index: 8;
   backdrop-filter: blur(18px);
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -230,6 +286,48 @@ body::before {
   border-radius: 16px;
 }
 
+.game-clock {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 8;
+  padding: 10px 16px 8px;
+  border-radius: 14px;
+  backdrop-filter: blur(18px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  user-select: none;
+  pointer-events: none;
+  min-width: 170px;
+}
+
+.game-clock-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.game-clock-time {
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 1.28rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.game-clock-date {
+  font-size: 0.64rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
 .control-dock {
   top: 18px;
   right: 18px;
@@ -240,7 +338,7 @@ body::before {
 
 .view-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -386,6 +484,80 @@ body::before {
   padding: 0 12px 12px;
 }
 
+/* ── Radar mode list ─────────────────────────────────────────────── */
+
+.radar-mode-list {
+  gap: 6px;
+}
+
+.radar-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  transition: all 100ms ease;
+}
+
+.radar-mode-btn:hover {
+  background: rgba(98, 208, 255, 0.06);
+  color: var(--text);
+  border-color: rgba(98, 208, 255, 0.15);
+}
+
+.radar-mode-btn[data-active='true'] {
+  background: rgba(98, 208, 255, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.radar-mode-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.7;
+  filter: brightness(0) invert(0.75) sepia(0.3) saturate(3) hue-rotate(170deg);
+}
+
+.radar-mode-btn[data-active='true'] .radar-mode-icon {
+  opacity: 1;
+  filter: brightness(0) invert(0.8) sepia(0.4) saturate(5) hue-rotate(170deg);
+}
+
+.radar-mode-label {
+  flex: 1;
+}
+
+.radar-mode-btn kbd {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-family: inherit;
+}
+
+.radar-mode-close {
+  justify-content: flex-end;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.radar-mode-close:hover {
+  background: rgba(255, 100, 100, 0.06);
+  color: #ff8888;
+  border-color: rgba(255, 100, 100, 0.12);
+}
+
 .control-stepper {
   display: grid;
   grid-template-columns: 44px 1fr 44px;
@@ -522,39 +694,583 @@ body::before {
   background: var(--naval);
 }
 
-.hud {
+.hud.info-card {
   right: 24px;
   bottom: 24px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr));
-  gap: 1px;
+  min-width: 320px;
+  max-width: 420px;
+  border-radius: 16px;
   overflow: hidden;
-  border-radius: 20px;
+}
+
+.info-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(7, 16, 31, 0.85);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.info-card-type {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+}
+
+.info-card-type.interceptor {
+  background: rgba(125, 228, 255, 0.15);
+  color: #7de4ff;
+}
+
+.info-card-id {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.info-card-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.info-card-close:hover {
+  color: var(--text);
+}
+
+.info-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+}
+
+.info-card-actions:empty {
+  display: none;
+}
+
+.info-card-actions {
+  border-top: 1px solid var(--panel-border);
+}
+
+/* When action panels are embedded in the info card, override their positioning */
+.info-card-actions .fleet-action,
+.info-card-actions .squadron-action {
+  position: static !important;
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  background: transparent;
+  z-index: auto;
+}
+
+.info-card-actions .fleet-action-header,
+.info-card-actions .squadron-action-header {
+  display: none;
 }
 
 .metric {
-  padding: 14px 16px;
-  min-width: 132px;
+  padding: 12px 14px;
+  min-width: 0;
   background: rgba(7, 16, 31, 0.72);
 }
 
 .label {
   display: block;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .metric strong {
   display: block;
-  margin-top: 8px;
-  font-size: 1.02rem;
+  margin-top: 6px;
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
 canvas {
   display: block;
+}
+
+.fleet-builder {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, -100%);
+  width: 260px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  transition: opacity 120ms ease;
+}
+
+.fleet-builder[hidden] {
+  display: none;
+}
+
+.fleet-builder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fleet-builder-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+}
+
+.fleet-builder-close {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.fleet-builder-base {
+  margin: 4px 0 12px;
+  color: var(--naval);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fleet-builder-ships {
+  display: grid;
+  gap: 6px;
+}
+
+.fleet-ship-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fleet-ship-name {
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+.fleet-ship-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fleet-ship-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.fleet-ship-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.fleet-ship-count {
+  min-width: 18px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.fleet-builder-deploy {
+  width: 100%;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #021018;
+  background: linear-gradient(135deg, #8fe7ff 0%, #62d0ff 100%);
+  box-shadow: 0 8px 24px rgba(98, 208, 255, 0.2);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.fleet-builder-deploy:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.naval-hint {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 10px 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(18px);
+  background: rgba(7, 16, 31, 0.8);
+  border: 1px solid rgba(107, 255, 212, 0.3);
+  color: var(--naval);
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.naval-hint[hidden] {
+  display: none;
+}
+
+.fleet-action {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, -100%);
+  width: 220px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  transition: opacity 120ms ease;
+}
+
+.fleet-action[hidden] {
+  display: none;
+}
+
+.fleet-action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fleet-action-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+}
+
+.fleet-action-close {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.fleet-action-info {
+  margin: 4px 0 12px;
+  color: var(--naval);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fleet-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.fleet-action-route,
+.fleet-action-launch,
+.fleet-action-confirm {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.fleet-action-route {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.fleet-action-route:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.fleet-action-launch {
+  color: #021018;
+  background: linear-gradient(135deg, #ffd166 0%, #ffb347 100%);
+  box-shadow: 0 8px 24px rgba(255, 179, 71, 0.2);
+}
+
+.fleet-action-launch:hover {
+  background: linear-gradient(135deg, #ffe08a 0%, #ffc266 100%);
+}
+
+.fleet-action-confirm {
+  color: #021018;
+  background: linear-gradient(135deg, #8fe7ff 0%, #62d0ff 100%);
+  box-shadow: 0 8px 24px rgba(98, 208, 255, 0.2);
+}
+
+/* ── Squadron builder (air) ─────────────────────────────────── */
+
+.squadron-builder {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, -100%);
+  width: 270px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  transition: opacity 120ms ease;
+}
+
+.squadron-builder[hidden] {
+  display: none;
+}
+
+.squadron-builder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.squadron-builder-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+}
+
+.squadron-builder-close {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.squadron-builder-base {
+  margin: 4px 0 12px;
+  color: var(--airbase);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.squadron-builder-aircraft {
+  display: grid;
+  gap: 6px;
+}
+
+.squadron-ac-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.squadron-ac-name {
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+.squadron-ac-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.squadron-ac-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.squadron-ac-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.squadron-ac-count {
+  min-width: 18px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.squadron-builder-range {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.squadron-builder-deploy {
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #021018;
+  background: linear-gradient(135deg, #a3c4ff 0%, #6ba3ff 100%);
+  box-shadow: 0 8px 24px rgba(107, 163, 255, 0.2);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.squadron-builder-deploy:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Squadron action panel ─────────────────────────────────── */
+
+.squadron-action {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, -100%);
+  width: 230px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  transition: opacity 120ms ease;
+}
+
+.squadron-action[hidden] {
+  display: none;
+}
+
+.squadron-action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.squadron-action-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+}
+
+.squadron-action-close {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.squadron-action-info {
+  margin: 4px 0 4px;
+  color: var(--airbase);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+}
+
+.squadron-action-route-detail {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--airbase);
+}
+
+.squadron-action-oor {
+  margin: 0 0 8px;
+  color: var(--silo);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.squadron-action-oor[hidden] {
+  display: none;
+}
+
+.squadron-action-confirm {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: #021018;
+  background: linear-gradient(135deg, #a3c4ff 0%, #6ba3ff 100%);
+  box-shadow: 0 8px 24px rgba(107, 163, 255, 0.2);
+}
+
+.air-hint {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 10px 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(18px);
+  background: rgba(7, 16, 31, 0.8);
+  border: 1px solid rgba(107, 163, 255, 0.3);
+  color: var(--airbase);
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.air-hint[hidden] {
+  display: none;
 }
 
 @media (max-width: 900px) {
@@ -599,10 +1315,335 @@ canvas {
     width: auto;
   }
 
-  .hud {
+  .hud.info-card {
     left: 16px;
     right: 16px;
     bottom: 16px;
-    grid-template-columns: 1fr;
+    min-width: unset;
   }
+}
+
+/* ── Notification toasts ─────────────────────────────────────── */
+
+.notification-container {
+  position: fixed;
+  top: 220px;
+  left: 16px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  max-width: 340px;
+}
+
+.notification {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.82rem;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.notification-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification-exit {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.notification-text {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.notification-close:hover {
+  color: var(--text);
+}
+
+.notification-warn {
+  border-color: rgba(255, 209, 102, 0.35);
+}
+
+.notification-warn .notification-text {
+  color: #ffd166;
+}
+
+.notification-success {
+  border-color: rgba(68, 221, 136, 0.35);
+}
+
+.notification-success .notification-text {
+  color: #44dd88;
+}
+
+.notification-error {
+  border-color: rgba(255, 107, 107, 0.35);
+}
+
+.notification-error .notification-text {
+  color: #ff6b6b;
+}
+
+.notification-alert {
+  border-color: rgba(255, 68, 68, 0.5);
+  background: rgba(255, 30, 30, 0.12);
+}
+
+.notification-alert .notification-text {
+  color: #ff4444;
+  font-weight: 600;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.notification-action-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.notification-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #ff4444;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* ── Orbit Planner Panel ─────────────────────────────────────────────── */
+
+.orbit-planner {
+  position: fixed;
+  top: 50%;
+  right: 24px;
+  transform: translateY(-50%);
+  z-index: 12;
+  width: 290px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+}
+
+.orbit-planner[hidden] {
+  display: none;
+}
+
+.orbit-planner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.orbit-planner-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.orbit-planner-close {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.orbit-planner-presets {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.orbit-preset-btn {
+  flex: 1;
+  padding: 6px 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 100ms ease;
+}
+
+.orbit-preset-btn:hover {
+  background: rgba(98, 208, 255, 0.08);
+  color: var(--text);
+}
+
+.orbit-preset-btn.active {
+  background: rgba(98, 208, 255, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.orbit-planner-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.orbit-slider-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 70px;
+  align-items: center;
+  gap: 8px;
+}
+
+.orbit-slider-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.orbit-slider-row input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(98, 208, 255, 0.15);
+  outline: none;
+}
+
+.orbit-slider-row input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.orbit-slider-value {
+  font-size: 0.76rem;
+  color: var(--text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.orbit-planner-readouts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  margin-bottom: 10px;
+}
+
+.orbit-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.orbit-readout-label {
+  font-size: 0.64rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.orbit-readout strong {
+  font-size: 0.84rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.orbit-planner-type {
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(98, 208, 255, 0.08);
+  border: 1px solid rgba(98, 208, 255, 0.12);
+  font-size: 0.76rem;
+  color: var(--accent);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.orbit-planner-launch {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: rgba(98, 208, 255, 0.1);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 100ms ease;
+}
+
+.orbit-planner-launch:hover:not(:disabled) {
+  background: rgba(98, 208, 255, 0.2);
+}
+
+.orbit-planner-launch:disabled {
+  opacity: 0.4;
+  cursor: default;
 }

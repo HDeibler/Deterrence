@@ -9,8 +9,9 @@ const BORDER_PROFILES = [
   { altitudeMaxKm: 7000, alpha: 0.36, lineWidth: 0.85, maxMinZoom: 3.0, lodLevel: 2 },
   { altitudeMaxKm: Infinity, alpha: 0.22, lineWidth: 0.8, maxMinZoom: 2.0, lodLevel: 2 },
 ];
-const BORDER_HORIZON_CUTOFF = 0.08;
-const COUNTRY_FILL_HORIZON_CUTOFF = 0.02;
+// Base cutoffs — tightened dynamically when zoomed close
+const BORDER_HORIZON_CUTOFF_BASE = 0.2;
+const COUNTRY_FILL_HORIZON_CUTOFF_BASE = 0.15;
 const COUNTRY_PALETTES = {
   default: {
     fill: 'rgba(116, 193, 255, 0.08)',
@@ -62,6 +63,8 @@ export function createCountryBorderSystem({
   let canvasHeight = 0;
   let previewCountryIso3 = null;
   let activeCountryIso3 = null;
+  let borderHorizonCutoff = BORDER_HORIZON_CUTOFF_BASE;
+  let countryFillHorizonCutoff = COUNTRY_FILL_HORIZON_CUTOFF_BASE;
 
   ensureLoaded();
 
@@ -78,6 +81,13 @@ export function createCountryBorderSystem({
       const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
       inverseQuaternion.copy(earthGroup.quaternion).invert();
       localCameraDirection.copy(camera.position).applyQuaternion(inverseQuaternion).normalize();
+
+      // Tighten horizon cutoff when zoomed close — at low altitude the camera
+      // sees a narrow slice of the globe, so borders near the limb bleed through.
+      const altFactor = THREE.MathUtils.clamp(altitudeKm / 2000, 0, 1);
+      borderHorizonCutoff = THREE.MathUtils.lerp(0.45, BORDER_HORIZON_CUTOFF_BASE, altFactor);
+      countryFillHorizonCutoff = THREE.MathUtils.lerp(0.40, COUNTRY_FILL_HORIZON_CUTOFF_BASE, altFactor);
+
       context.save();
       context.scale(dpr, dpr);
 
@@ -98,6 +108,7 @@ export function createCountryBorderSystem({
           width,
           height,
           palette: getCountryPalette(focusedCountryIso3),
+          horizonCutoff: countryFillHorizonCutoff,
         });
       }
 
@@ -105,7 +116,7 @@ export function createCountryBorderSystem({
         if (segment.minZoom > profile.maxMinZoom) {
           continue;
         }
-        if (segment.maxVisibilityDot(localCameraDirection) < BORDER_HORIZON_CUTOFF) {
+        if (segment.maxVisibilityDot(localCameraDirection) < borderHorizonCutoff) {
           continue;
         }
         if (!enabled && focusedCountryIso3 && segment.iso3 !== focusedCountryIso3) {
@@ -128,6 +139,7 @@ export function createCountryBorderSystem({
           projected,
           width,
           height,
+          horizonCutoff: borderHorizonCutoff,
         });
       }
 
@@ -259,6 +271,7 @@ function drawCountryOverlay({
   width,
   height,
   palette,
+  horizonCutoff,
 }) {
   if (!country) {
     return;
@@ -267,7 +280,7 @@ function drawCountryOverlay({
   const outlineWidth = Math.max(profile.lineWidth * 2.2, 1.4);
 
   for (const polygon of country.polygons) {
-    if (polygon.maxVisibilityDot(localCameraDirection) < COUNTRY_FILL_HORIZON_CUTOFF) {
+    if (polygon.maxVisibilityDot(localCameraDirection) < horizonCutoff) {
       continue;
     }
 
@@ -285,6 +298,7 @@ function drawCountryOverlay({
         projected,
         width,
         height,
+        horizonCutoff,
       });
       if (!projectedRing) {
         fullyVisible = false;
@@ -332,6 +346,7 @@ function drawSegment({
   projected,
   width,
   height,
+  horizonCutoff,
 }) {
   let started = false;
   let visiblePoints = 0;
@@ -347,6 +362,7 @@ function drawSegment({
         localCameraDirection,
         worldPosition,
         projected,
+        horizonCutoff,
       })
     ) {
       if (started && visiblePoints > 1) {
@@ -384,9 +400,10 @@ function projectBorderPoint({
   localCameraDirection,
   worldPosition,
   projected,
+  horizonCutoff,
 }) {
   localVector.fromArray(point);
-  if (localVector.dot(localCameraDirection) < BORDER_HORIZON_CUTOFF * localVector.length()) {
+  if (localVector.dot(localCameraDirection) < horizonCutoff * localVector.length()) {
     return false;
   }
   worldPosition.copy(localVector).applyQuaternion(earthGroup.quaternion);
@@ -413,6 +430,7 @@ function projectCountryRing({
   projected,
   width,
   height,
+  horizonCutoff,
 }) {
   const projectedRing = [];
 
@@ -420,7 +438,7 @@ function projectCountryRing({
     localVector.fromArray(point);
     if (
       localVector.dot(localCameraDirection) <
-      COUNTRY_FILL_HORIZON_CUTOFF * localVector.length()
+      horizonCutoff * localVector.length()
     ) {
       return null;
     }

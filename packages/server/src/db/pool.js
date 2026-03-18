@@ -8,3 +8,7 @@ export const pool = new Pool({
   max: 10,
   idleTimeoutMillis: 30_000,
 });
+
+pool.on('error', (error) => {
+  console.error('Unexpected database pool error:', error.message);
+});

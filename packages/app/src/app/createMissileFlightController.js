@@ -14,6 +14,12 @@ export function createMissileFlightController({
       for (const flight of flights) {
         flight.simulation.step(stepSeconds);
       }
+      // Auto-remove flights that completed their impact cleanup
+      for (let i = flights.length - 1; i >= 0; i -= 1) {
+        if (!flights[i].simulation.isActive()) {
+          flights.splice(i, 1);
+        }
+      }
     },
     launch({ launchSite, target }) {
       const simulation = createMissileSimulation({ simulationConfig, worldConfig });
@@ -33,6 +39,12 @@ export function createMissileFlightController({
         id: flight.id,
         ...flight.simulation.getSnapshot(),
       }));
+    },
+    destroyMissile(missileId) {
+      const index = flights.findIndex((f) => f.id === missileId);
+      if (index >= 0) {
+        flights.splice(index, 1);
+      }
     },
     getPrimarySnapshot(snapshots) {
       const source =

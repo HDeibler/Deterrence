@@ -6,8 +6,9 @@ export const DEFAULT_VIEW_STATE = Object.freeze({
   launch: true,
   radar: true,
   naval: true,
-  bases: false,
+  bases: true,
   context: true,
+  defense: true,
 });
 
 export function createInitialRadarSelection() {

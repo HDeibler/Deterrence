@@ -500,6 +500,18 @@ function drawClusteredInstallations({ context, entries, hitRegions }) {
     context.textBaseline = 'middle';
     context.fillText(String(cluster.entries.length), x, y + 16);
     context.textAlign = 'left';
+
+    // Register hit region with a synthetic cluster site
+    const ownEntries = cluster.entries.filter((e) => e.isOwn && !e.isSpent);
+    if (ownEntries.length > 0) {
+      const clusterSite = buildClusterSite(ownEntries);
+      hitRegions.push({
+        x,
+        y,
+        radius: 24,
+        site: clusterSite,
+      });
+    }
   }
 }
 
@@ -523,15 +535,18 @@ function drawSpreadCluster({ context, entries, hitRegions }) {
       radius: 8.8,
       emphasis: true,
     });
+  }
 
-    if (entry.isOwn && !entry.isSpent) {
-      hitRegions.push({
-        x: spreadEntry.x,
-        y: spreadEntry.y,
-        radius: 18,
-        site: entry.site,
-      });
-    }
+  // Register one cluster hit region covering all entries
+  const ownEntries = entries.filter((e) => e.isOwn && !e.isSpent);
+  if (ownEntries.length > 0) {
+    const clusterSite = buildClusterSite(ownEntries);
+    hitRegions.push({
+      x: centerX,
+      y: centerY,
+      radius: spreadRadius + 18,
+      site: clusterSite,
+    });
   }
 }
 
@@ -618,6 +633,30 @@ function drawBaseIcon({ context, category, x, y, size, color, alpha }) {
   }
 
   context.restore();
+}
+
+function buildClusterSite(ownEntries) {
+  const sites = ownEntries.map((e) => e.site);
+  const avgLat = sites.reduce((sum, s) => sum + s.latitude, 0) / sites.length;
+  const avgLon = sites.reduce((sum, s) => sum + s.longitude, 0) / sites.length;
+  const dominant = getDominantCategory(
+    sites.reduce((acc, s) => { acc[s.category] = (acc[s.category] || 0) + 1; return acc; }, {}),
+  );
+  const primary = sites[0];
+  const extra = sites.length - 1;
+  const name = extra > 0 ? `${primary.name} + ${extra} base${extra > 1 ? 's' : ''}` : primary.name;
+  return {
+    id: `cluster_${primary.id}`,
+    name,
+    latitude: avgLat,
+    longitude: avgLon,
+    category: dominant,
+    countryIso3: primary.countryIso3,
+    countryIso2: primary.countryIso2,
+    countryName: primary.countryName,
+    installationType: primary.installationType,
+    clusteredSites: sites,
+  };
 }
 
 function getDominantCategory(categoryCounts) {
@@ -807,24 +846,74 @@ function drawStatusBar({
       lines.push(`Ground radars deployed: ${radar.groundCount}`);
     }
   } else if (radar?.mode === 'satellite') {
-    lines.push(`RADAR SETUP | Early Warning Satellite | ${activeCountry}`);
+    const altKm = radar.orbitAltitudeKm ?? 2000;
+    const coverageKmSat = radar.footprintRadiusKm ?? 0;
+    const isGeo = altKm >= 35000;
+    const orbitLabel = isGeo ? 'GEO' : altKm >= 5000 ? 'MEO' : 'LEO';
+    lines.push(`RADAR SETUP | Early Warning Satellite | ${activeCountry} | ${orbitLabel} ${altKm.toLocaleString()} km`);
+    lines.push(`Coverage radius: ${Math.round(coverageKmSat).toLocaleString()} km | ${isGeo ? 'Geostationary' : 'Moving orbit'} | +/- adjust altitude`);
     if (radar.pendingSatelliteSlot) {
       lines.push(
-        `Pending GEO slot: ${radar.pendingSatelliteSlot.label} | Enter launches from ${radar.spaceportName ?? 'your spaceport'}`,
+        `Pending slot: ${radar.pendingSatelliteSlot.label} (${radar.pendingSatelliteSlot.longitude.toFixed(0)}°) | Enter launches from ${radar.spaceportName ?? 'your spaceport'}`,
       );
-      lines.push(`Selected longitude: ${radar.pendingSatelliteSlot.longitude.toFixed(0)}°`);
     } else {
       lines.push(
-        `Click a GEO slot to stage launch from ${radar.spaceportName ?? 'your spaceport'} | Tab switches mode | R exits`,
+        `Click a slot to stage launch from ${radar.spaceportName ?? 'your spaceport'} | Tab switches mode | R exits`,
       );
+    }
+    if (radar.selectedSatellite) {
+      const sat = radar.selectedSatellite;
+      const targetAlt = sat.altitudeKm?.toLocaleString() ?? '?';
+      const currentAlt = sat.currentAltitudeKm?.toLocaleString() ?? '?';
+      const speed = sat.currentSpeedKmS ?? '?';
+      const flightMin = sat.flightTimeSeconds ? Math.floor(sat.flightTimeSeconds / 60) : 0;
+      lines.push(`SELECTED: ${sat.id} | ${sat.operational ? 'OPERATIONAL' : sat.stageLabel ?? sat.phase}`);
+      lines.push(`Altitude: ${currentAlt} km (target: ${targetAlt} km) | Speed: ${speed} km/s | Flight: ${flightMin}m`);
+      lines.push(`Coverage: ${Math.round(sat.footprintRadiusKm).toLocaleString()} km radius | ${sat.isGeostationary ? 'Geostationary' : 'Free orbit'}`);
     }
     if ((radar.satelliteCount ?? 0) > 0 || (radar.launchCount ?? 0) > 0) {
       lines.push(
         `Satellites deployed: ${radar.satelliteCount ?? 0} | Launches in progress: ${radar.launchCount ?? 0}`,
       );
     }
+  } else if (radar?.mode === 'interceptor') {
+    const intType = 'NGI';
+    lines.push(`DEFENSE SETUP | ${intType} Interceptor | ${activeCountry}`);
+    if (radar.pendingGroundTarget) {
+      lines.push(
+        `Pending site: ${radar.pendingGroundTarget.label} | Enter confirms | Click to reposition | Tab to cycle type`,
+      );
+    } else {
+      lines.push(
+        `Click globe to place ${intType} battery | R exits`,
+      );
+    }
+    if ((radar.interceptorSiteCount ?? 0) > 0) {
+      lines.push(`Interceptor sites deployed: ${radar.interceptorSiteCount}`);
+    }
   } else if (mode === 'idle') {
-    lines.push('Press M for strikes, N for naval, or R for radar setup.');
+    // Show defense status + selected satellite info
+    const defense = radar?.defenseSnapshot;
+    const activeThreats = defense?.threats?.filter((t) => t.status !== 'undetected') ?? [];
+    const activeInterceptors = defense?.interceptors?.filter((i) => i.phase !== 'complete') ?? [];
+
+    if (activeThreats.length > 0 || activeInterceptors.length > 0) {
+      const tracked = activeThreats.filter((t) => t.status === 'radar-tracked').length;
+      const boostDet = activeThreats.filter((t) => t.status === 'boost-detected').length;
+      const intercepted = activeThreats.filter((t) => t.status === 'intercepted').length;
+      lines.push(`DEFENSE | Tracked: ${tracked} | Boost-detected: ${boostDet} | Intercepted: ${intercepted} | Interceptors active: ${activeInterceptors.length}`);
+    }
+
+    if (radar?.selectedSatellite) {
+      const sat = radar.selectedSatellite;
+      const targetAlt = sat.altitudeKm?.toLocaleString() ?? '?';
+      const currentAlt = sat.currentAltitudeKm?.toLocaleString() ?? '?';
+      const speed = sat.currentSpeedKmS ?? '?';
+      lines.push(`SATELLITE: ${sat.id} | ${sat.operational ? 'OPERATIONAL' : sat.stageLabel ?? sat.phase}`);
+      lines.push(`Alt: ${currentAlt}/${targetAlt} km | Speed: ${speed} km/s | Coverage: ${Math.round(sat.footprintRadiusKm).toLocaleString()} km`);
+    } else if (activeThreats.length === 0) {
+      lines.push('Press M for strikes, N for naval, or R for radar setup.');
+    }
   } else if (mode === 'strike') {
     lines.push(`STRIKE PLANNING | ${activeCountry} | ${categoryLabel} | Silos: ${availableSilos}`);
     if (targetsPlaced > 0) {

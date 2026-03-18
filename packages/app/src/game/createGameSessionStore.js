@@ -9,6 +9,7 @@ export function createGameSessionStore({
   const state = {
     activeCountryIso3: normalizeIso3(initialCountryIso3),
     godView: Boolean(initialGodView),
+    defenseTargetOwn: true,
     paused: Boolean(initialPaused),
     started: Boolean(initialStarted),
     devMode: Boolean(devMode),
@@ -57,6 +58,10 @@ export function createGameSessionStore({
     },
     toggleGodView() {
       state.godView = !state.godView;
+      emit();
+    },
+    setDefenseTargetOwn(value) {
+      state.defenseTargetOwn = Boolean(value);
       emit();
     },
   };

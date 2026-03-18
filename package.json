@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "node scripts/start-workspace.mjs",
+    "start": "concurrently --names app,server --prefix-colors cyan,magenta \"npm start -w deterrence-app\" \"npm start -w deterrence-server\"",
     "docker:up": "docker compose up -d postgres",
     "docker:down": "docker compose down",
     "format:check": "prettier . --check --config .prettierrc.yaml --ignore-path .prettierignore",

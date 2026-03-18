@@ -6,6 +6,7 @@ export function createGameMenuController({ document, window }) {
   const settingsOpenButton = document.getElementById('settingsToggle');
   const settingsCountryField = document.getElementById('settingsCountryField');
   const settingsGodViewField = document.getElementById('settingsGodViewField');
+  const settingsDefenseTestField = document.getElementById('settingsDefenseTestField');
   const resumeButton = document.getElementById('resumeGameButton');
   const settingsStatus = document.getElementById('settingsStatusText');
   const devBadge = document.getElementById('devModeBadge');
@@ -37,6 +38,7 @@ export function createGameMenuController({ document, window }) {
         settingsCountryField.value = session.activeCountryIso3;
       }
       settingsGodViewField.checked = session.godView;
+      settingsDefenseTestField.checked = session.defenseTargetOwn;
 
       settingsStatus.textContent = session.godView ? 'God view enabled' : 'Country view enabled';
     },
@@ -99,6 +101,13 @@ export function createGameMenuController({ document, window }) {
       };
       settingsGodViewField.addEventListener('change', godViewHandler);
       return () => settingsGodViewField.removeEventListener('change', godViewHandler);
+    },
+    onDefenseTargetOwn(handler) {
+      const changeHandler = () => {
+        handler(settingsDefenseTestField.checked);
+      };
+      settingsDefenseTestField.addEventListener('change', changeHandler);
+      return () => settingsDefenseTestField.removeEventListener('change', changeHandler);
     },
   };
 

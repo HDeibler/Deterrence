@@ -1,0 +1,2141 @@
+{
+  "thaad": [
+    {
+      "dist_km": 30,
+      "alt_km": 40,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 25.616840471047908,
+      "pitchover_rate_deg_s": 2.6866251939354577,
+      "miss_km": 0.002452125928904853
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 40,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 1.9404228776693344,
+      "pitchover_rate_deg_s": 9.986733886599609,
+      "miss_km": 0.0012430891858238378
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 40,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 52.383941039443016,
+      "pitchover_rate_deg_s": 2.2934099944308417,
+      "miss_km": 0.0005190101401428664
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 40,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 22.512757630180367,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 3.145385682997558e-05
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 40,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 80.7361707687378,
+      "pitchover_rate_deg_s": 0.5389676570892319,
+      "miss_km": 2.3058562043061572
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 60,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 19.28183980024187,
+      "pitchover_rate_deg_s": 1.3928215922394849,
+      "miss_km": 0.001784694313598252
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 60,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 26.64385473355651,
+      "pitchover_rate_deg_s": 1.2898464792408069,
+      "miss_km": 0.0012285431804574482
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 60,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 20.990957126312423,
+      "pitchover_rate_deg_s": 3.032900150650682,
+      "miss_km": 0.001641172918886954
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 60,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 19.683783099266293,
+      "pitchover_rate_deg_s": 5.045093882821675,
+      "miss_km": 0.0016949393006932554
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 60,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 8.673764923412818,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0009387751559353276
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 80,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 8.705297193277147,
+      "pitchover_rate_deg_s": 1.4659153072390863,
+      "miss_km": 0.004001387750687981
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 80,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 8.135963413864374,
+      "pitchover_rate_deg_s": 1.957545227929951,
+      "miss_km": 0.0025738783965192752
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 80,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 8.216175110195763,
+      "pitchover_rate_deg_s": 2.614257938196551,
+      "miss_km": 0.0017943285514575497
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 80,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 12.808053687214851,
+      "pitchover_rate_deg_s": 2.935675401426856,
+      "miss_km": 0.001684492224944606
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 80,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 7.470851221220073,
+      "miss_km": 0.0011364430070009601
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 100,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 6.997959494590759,
+      "pitchover_rate_deg_s": 1.0994012117385865,
+      "miss_km": 0.0023980810986493667
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 100,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 0.19246983528137207,
+      "pitchover_rate_deg_s": 1.9631516218185228,
+      "miss_km": 0.005319498463892461
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 100,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 16.631809455750044,
+      "pitchover_rate_deg_s": 0.7689296144468232,
+      "miss_km": 0.0016329010057679614
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 100,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 6.204561464488506,
+      "pitchover_rate_deg_s": 2.296634864341468,
+      "miss_km": 0.002993531214041511
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 100,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 5.990199014544487,
+      "miss_km": 0.0022285668516658927
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 120,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 22.19153390932479,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 0.0014196672543518127
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 120,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 11.614955410754192,
+      "pitchover_rate_deg_s": 0.5630087125289751,
+      "miss_km": 0.0009845844024533106
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 120,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 5.869354248046875,
+      "pitchover_rate_deg_s": 1.2676025390624954,
+      "miss_km": 0.0007823750832106262
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 120,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 2.1402028192416793,
+      "miss_km": 0.0035385473936333876
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 120,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 6.807905069716071,
+      "miss_km": 0.002319515885455341
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 150,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 1.6635573841631472,
+      "miss_km": 0.010474437612686611
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 150,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 10.374043135903776,
+      "pitchover_rate_deg_s": 0.3306428278796369,
+      "miss_km": 0.0014105703966768093
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 150,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 10.567818660201738,
+      "pitchover_rate_deg_s": 0.4310844895778999,
+      "miss_km": 0.0006145221846097617
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 150,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 1.8503229618072567,
+      "miss_km": 0.004965809308897293
+    },
+    {
+      "dist_km": 30,
+      "alt_km": 150,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 2.313087750438723,
+      "miss_km": 0.003938177111388498
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 40,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 28.171030193567276,
+      "pitchover_rate_deg_s": 4.473666317760944,
+      "miss_km": 0.001924131458927033
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 40,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 40.88903514953563,
+      "pitchover_rate_deg_s": 5.767507677729018,
+      "miss_km": 0.0005161471491664691
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 40,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 35.061756451838235,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.4746202693314744
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 40,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 79.94318389892578,
+      "pitchover_rate_deg_s": 0.5934116363525374,
+      "miss_km": 5.651780806640113
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 40,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 80.59525966644287,
+      "pitchover_rate_deg_s": 0.5097114086151107,
+      "miss_km": 9.517761784492928
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 60,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 34.74791385462595,
+      "pitchover_rate_deg_s": 1.28668429254233,
+      "miss_km": 0.002182542847321566
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 60,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 17.495155652984977,
+      "pitchover_rate_deg_s": 4.2692402524408095,
+      "miss_km": 0.0020924219840110455
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 60,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 53.13437613806673,
+      "pitchover_rate_deg_s": 1.036921202204034,
+      "miss_km": 0.0006412811164735376
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 60,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 48.94494625551124,
+      "pitchover_rate_deg_s": 3.6930023894589112,
+      "miss_km": 0.00037702874977945945
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 60,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 23.490562565433578,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.6559862180532565
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 80,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 35.49686740848375,
+      "pitchover_rate_deg_s": 0.2677401744793997,
+      "miss_km": 0.0011120430548353778
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 80,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 24.919119961559772,
+      "pitchover_rate_deg_s": 1.6666336710099157,
+      "miss_km": 0.0039466848030189116
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 80,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 21.96659231185913,
+      "pitchover_rate_deg_s": 2.7032279491424616,
+      "miss_km": 0.0038449893269356565
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 80,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 25.475630935281515,
+      "pitchover_rate_deg_s": 3.496237804507843,
+      "miss_km": 0.0028907128648285618
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 80,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 27.950754046440125,
+      "pitchover_rate_deg_s": 5.239015966653824,
+      "miss_km": 0.001287944976715232
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 100,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 15.122817516792566,
+      "pitchover_rate_deg_s": 1.3737378698919227,
+      "miss_km": 0.004732029991112678
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 100,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 15.851045608520508,
+      "pitchover_rate_deg_s": 1.6577859878540047,
+      "miss_km": 0.0042102529341246624
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 100,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 26.34968225058128,
+      "pitchover_rate_deg_s": 1.1294159731128073,
+      "miss_km": 0.0016521876806757222
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 100,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 16.806584905833006,
+      "pitchover_rate_deg_s": 2.6724357448518283,
+      "miss_km": 0.003331075341045614
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 100,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 29.90753285586834,
+      "pitchover_rate_deg_s": 2.046946889162065,
+      "miss_km": 0.0030862879555355145
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 120,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 20.669708757894114,
+      "pitchover_rate_deg_s": 0.49462634311639697,
+      "miss_km": 0.001149432763507879
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 120,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 14.599081914402632,
+      "pitchover_rate_deg_s": 1.2232785059521545,
+      "miss_km": 0.003975652545054566
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 120,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 24.557831148153127,
+      "pitchover_rate_deg_s": 0.6545835420678388,
+      "miss_km": 0.0030686502029021274
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 120,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 14.42712433730776,
+      "pitchover_rate_deg_s": 1.9448700977959552,
+      "miss_km": 0.002631736403715002
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 120,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 4.148518285146565,
+      "miss_km": 0.004145046993084213
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 150,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 10.135105983525136,
+      "pitchover_rate_deg_s": 0.897288848976311,
+      "miss_km": 0.004034933491489539
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 150,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 16.43532196583692,
+      "pitchover_rate_deg_s": 0.5662621476687428,
+      "miss_km": 0.0018297491193802525
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 150,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 12.252781641062029,
+      "pitchover_rate_deg_s": 1.0965046677000778,
+      "miss_km": 0.002348754841699451
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 150,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 14.053448473050594,
+      "pitchover_rate_deg_s": 1.179942558204806,
+      "miss_km": 0.003239158547138069
+    },
+    {
+      "dist_km": 50,
+      "alt_km": 150,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 10.33478492184804,
+      "pitchover_rate_deg_s": 1.8064409773724037,
+      "miss_km": 0.0021156254524338303
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 40,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 51.102759840432554,
+      "pitchover_rate_deg_s": 3.29171409537666,
+      "miss_km": 0.0014139918996823977
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 40,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 81.24130824944459,
+      "pitchover_rate_deg_s": 0.17479732055094452,
+      "miss_km": 1.3075487988121803
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 40,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 81.63842567027132,
+      "pitchover_rate_deg_s": 0.1639845270326285,
+      "miss_km": 13.882837838771886
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 40,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 80.94310735839721,
+      "pitchover_rate_deg_s": 0.31415085121487907,
+      "miss_km": 21.21763801514188
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 40,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 81.94401705990535,
+      "pitchover_rate_deg_s": 0.17889001726906328,
+      "miss_km": 26.543046196592034
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 60,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 11.630489353090525,
+      "pitchover_rate_deg_s": 6.030281511135399,
+      "miss_km": 0.003362365105522133
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 60,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 9.320511817932129,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0014025882630567027
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 60,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 33.52785145727706,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0006495781653339266
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 60,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 80.90190435248277,
+      "pitchover_rate_deg_s": 0.25180701082969104,
+      "miss_km": 3.6297253008621535
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 60,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 80.7880248534176,
+      "pitchover_rate_deg_s": 0.309428926161228,
+      "miss_km": 10.777315397889078
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 80,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 43.40811190009117,
+      "pitchover_rate_deg_s": 0.8224921416491289,
+      "miss_km": 0.005201057693389386
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 80,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 13.516250610351562,
+      "pitchover_rate_deg_s": 4.7091842651367575,
+      "miss_km": 0.0020180071389396385
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 80,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 51.588134765625,
+      "pitchover_rate_deg_s": 1.1771728515624935,
+      "miss_km": 0.002123439066517638
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 80,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 0.052099106018431485,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0009067079471506087
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 80,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0001315304629185309
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 100,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 3.4297347120009363,
+      "pitchover_rate_deg_s": 3.50912277989556,
+      "miss_km": 0.006514698456408949
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 100,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 9.230524558573961,
+      "pitchover_rate_deg_s": 3.6205993551761146,
+      "miss_km": 0.005053491949532544
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 100,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 9.972065890207887,
+      "pitchover_rate_deg_s": 4.545379016548395,
+      "miss_km": 0.004880112364859515
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 100,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 50.19243685589754,
+      "pitchover_rate_deg_s": 0.9037807564091063,
+      "miss_km": 0.00191073138565064
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 100,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0021269756228747914
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 120,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 31.856282472610474,
+      "pitchover_rate_deg_s": 0.6157891660928718,
+      "miss_km": 0.004070028417372326
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 120,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 28.925723367661703,
+      "pitchover_rate_deg_s": 1.1506961134971696,
+      "miss_km": 0.0032539191963889586
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 120,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 10.472443029284477,
+      "pitchover_rate_deg_s": 3.2073823548853486,
+      "miss_km": 0.004560764836353729
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 120,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 16.906049072742462,
+      "pitchover_rate_deg_s": 3.2450142100453423,
+      "miss_km": 0.0031947801870899255
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 120,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 3.276889108121395,
+      "pitchover_rate_deg_s": 6.532080207951367,
+      "miss_km": 0.002990734721564424
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 150,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 28.7113177170977,
+      "pitchover_rate_deg_s": 0.3260097072459747,
+      "miss_km": 0.0024840347090301475
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 150,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 14.379749183077365,
+      "pitchover_rate_deg_s": 1.6723935563117236,
+      "miss_km": 0.008542534136783159
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 150,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 27.09112773835659,
+      "pitchover_rate_deg_s": 0.9251381210982755,
+      "miss_km": 0.004671287293479431
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 150,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 23.18943214416504,
+      "pitchover_rate_deg_s": 1.5635839104652427,
+      "miss_km": 0.003613648252095094
+    },
+    {
+      "dist_km": 80,
+      "alt_km": 150,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 7.25266720354557,
+      "pitchover_rate_deg_s": 3.5320796549320255,
+      "miss_km": 0.0032878317493074674
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 40,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 54.83136976575069,
+      "pitchover_rate_deg_s": 5.171825634487748,
+      "miss_km": 0.0006850359875380048
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 40,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 81.60651747495345,
+      "pitchover_rate_deg_s": 0.12357350028723074,
+      "miss_km": 12.194248659438465
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 40,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 81.26958037935694,
+      "pitchover_rate_deg_s": 0.2037371787124017,
+      "miss_km": 26.096096337680766
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 40,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 82.72572342720699,
+      "pitchover_rate_deg_s": 0.038795103221385824,
+      "miss_km": 35.179348490952925
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 40,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 82.09036090446895,
+      "pitchover_rate_deg_s": 0.14581336191643984,
+      "miss_km": 40.40012819506695
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 60,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 56.1188148278743,
+      "pitchover_rate_deg_s": 1.1075058954767893,
+      "miss_km": 0.0033348179679206073
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 60,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 63.804090173991014,
+      "pitchover_rate_deg_s": 1.131811369984443,
+      "miss_km": 0.0012001678627319887
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 60,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 35.32131693869587,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.5411387147059998
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 60,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 80.64573655851015,
+      "pitchover_rate_deg_s": 0.27267182032554194,
+      "miss_km": 11.48401099825893
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 60,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 81.41668837703585,
+      "pitchover_rate_deg_s": 0.19773975432677454,
+      "miss_km": 20.449875601299023
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 80,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 56.15765052144627,
+      "pitchover_rate_deg_s": 0.340267930465336,
+      "miss_km": 0.0020604086665090703
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 80,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 7.373907759436406,
+      "pitchover_rate_deg_s": 7.652402080188096,
+      "miss_km": 0.0029969367529124064
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 80,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 21.237320458168142,
+      "pitchover_rate_deg_s": 8.502122745180877,
+      "miss_km": 0.0016858233121756969
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 80,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 26.296897042663385,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0005433761316075607
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 80,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 78.93405723944306,
+      "pitchover_rate_deg_s": 0.5564433615654698,
+      "miss_km": 4.1779436859581045
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 100,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 33.78629056876525,
+      "pitchover_rate_deg_s": 1.504505073430481,
+      "miss_km": 0.004050557698386195
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 100,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 47.66634711739607,
+      "pitchover_rate_deg_s": 0.7860652277522571,
+      "miss_km": 0.0027856854696906943
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 100,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 11.360640350729227,
+      "pitchover_rate_deg_s": 5.97078302828595,
+      "miss_km": 0.003797618167800391
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 100,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 41.712724685668945,
+      "pitchover_rate_deg_s": 2.8325428962707537,
+      "miss_km": 0.0019995870429698574
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 100,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 20.119784162845463,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0006500538864579835
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 120,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 25.850658416748047,
+      "pitchover_rate_deg_s": 1.6168539047241217,
+      "miss_km": 0.00566865064852343
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 120,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 33.573353704065084,
+      "pitchover_rate_deg_s": 1.3534154263325067,
+      "miss_km": 0.006501532139424623
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 120,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 37.55632051639259,
+      "pitchover_rate_deg_s": 1.4246672147302986,
+      "miss_km": 0.007152764220668146
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 120,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 4.5703125,
+      "pitchover_rate_deg_s": 6.47265625,
+      "miss_km": 0.003229187761216278
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 120,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 55.46037577444076,
+      "pitchover_rate_deg_s": 0.8541875534332113,
+      "miss_km": 0.001286142508602443
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 150,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 4.795745849609375,
+      "pitchover_rate_deg_s": 2.638989257812499,
+      "miss_km": 0.00825924266230987
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 150,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 3.597096667438756,
+      "miss_km": 0.006522659394655733
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 150,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 6.5103759765625,
+      "pitchover_rate_deg_s": 3.2738891601562647,
+      "miss_km": 0.0003873560352133118
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 150,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 12.152532145380974,
+      "pitchover_rate_deg_s": 3.280860330164437,
+      "miss_km": 0.004262163263357198
+    },
+    {
+      "dist_km": 100,
+      "alt_km": 150,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 21.045762166846544,
+      "pitchover_rate_deg_s": 2.994541223882704,
+      "miss_km": 0.002738983258520269
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 40,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 82.12730153653045,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 12.918947475995227
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 40,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 82.82616316277097,
+      "pitchover_rate_deg_s": 0.0033970755359201184,
+      "miss_km": 33.002846943967285
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 40,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 82.82417545280938,
+      "pitchover_rate_deg_s": 0.02379128977994349,
+      "miss_km": 48.06803496489607
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 60,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 13.808086759381695,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0024331776698497043
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 60,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 82.12312662026203,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 0.44641219827648765
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 60,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 80.9725625607092,
+      "pitchover_rate_deg_s": 0.1540124671284946,
+      "miss_km": 15.639869494396008
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 60,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 82.86243487074995,
+      "pitchover_rate_deg_s": 0.016941786258276484,
+      "miss_km": 28.69542095936829
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 60,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 81.05056721727681,
+      "pitchover_rate_deg_s": 0.23819886284224934,
+      "miss_km": 39.50060035124823
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 80,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 43.55714408971835,
+      "pitchover_rate_deg_s": 2.095149587531347,
+      "miss_km": 0.0025445731250545527
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 80,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 63.58075563982129,
+      "pitchover_rate_deg_s": 0.7935746612492953,
+      "miss_km": 0.0036575250293875198
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 80,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 6.29010961385211,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.00048175840855153656
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 80,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 82.79044612124764,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 7.712391295928804
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 80,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 81.79713941955018,
+      "pitchover_rate_deg_s": 0.11401776180537684,
+      "miss_km": 18.791974045920053
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 100,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 51.48872854281217,
+      "pitchover_rate_deg_s": 0.7390446806792159,
+      "miss_km": 0.004055684541993295
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 100,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 9.668785646557808,
+      "pitchover_rate_deg_s": 6.704329696297677,
+      "miss_km": 0.0031227205133095397
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 100,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 51.52067577437265,
+      "pitchover_rate_deg_s": 1.801096685294763,
+      "miss_km": 0.0017680780494210655
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 100,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 57.961130451613414,
+      "pitchover_rate_deg_s": 2.339418269886931,
+      "miss_km": 0.0014767026287046002
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 100,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 79.23576847481038,
+      "pitchover_rate_deg_s": 0.3538035785650242,
+      "miss_km": 1.7985782911161403
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 120,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 34.66143608093262,
+      "pitchover_rate_deg_s": 1.559759402275088,
+      "miss_km": 0.005439617880455097
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 120,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 48.418147297168616,
+      "pitchover_rate_deg_s": 0.8517181296047115,
+      "miss_km": 0.006361813023406656
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 120,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 30.3268131762743,
+      "pitchover_rate_deg_s": 3.1584982484579127,
+      "miss_km": 0.0026227322559155717
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 120,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 32.45973815911475,
+      "pitchover_rate_deg_s": 4.271713666049363,
+      "miss_km": 0.0035249594354187525
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 120,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 29.93073856679439,
+      "pitchover_rate_deg_s": 8.599921139866979,
+      "miss_km": 0.000835009113644218
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 150,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 39.72805309295654,
+      "pitchover_rate_deg_s": 0.5944760799407953,
+      "miss_km": 0.006812055424532875
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 150,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 38.677787260268815,
+      "pitchover_rate_deg_s": 0.9612324415415092,
+      "miss_km": 0.006664654269520425
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 150,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 38.117949306964874,
+      "pitchover_rate_deg_s": 1.3361111909151069,
+      "miss_km": 0.007142597320052919
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 150,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 46.93718823278323,
+      "pitchover_rate_deg_s": 0.9981583800399709,
+      "miss_km": 0.003849356394138234
+    },
+    {
+      "dist_km": 130,
+      "alt_km": 150,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 27.56817587212592,
+      "pitchover_rate_deg_s": 3.749008980161729,
+      "miss_km": 0.0012374676709477413
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 40,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 82.0361921961323,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 37.010498202829005
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 60,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 40.52868901774491,
+      "pitchover_rate_deg_s": 9.86791433626422,
+      "miss_km": 0.0021365708413321723
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 60,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 82.06232342104013,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 19.064243737400325
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 60,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 82.62479895427262,
+      "pitchover_rate_deg_s": 0.002371412199919848,
+      "miss_km": 36.931669129978204
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 60,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 82.76992647888666,
+      "pitchover_rate_deg_s": 0.021090985784401505,
+      "miss_km": 49.305990465197155
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 80,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 14.961686418391764,
+      "pitchover_rate_deg_s": 9.13794461991641,
+      "miss_km": 0.002946080007811182
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 80,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 22.01650784719095,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0011034725581127221
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 80,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 82.07738019064391,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 9.156033086390323
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 80,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 82.62554332580584,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 24.864322127110427
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 80,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 82.87037233491296,
+      "pitchover_rate_deg_s": 0.006113894054750588,
+      "miss_km": 35.07219068984025
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 100,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 60.46234077215195,
+      "pitchover_rate_deg_s": 0.5059729307889934,
+      "miss_km": 0.0034029845622482392
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 100,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 50.71957288932754,
+      "pitchover_rate_deg_s": 1.9031617380387627,
+      "miss_km": 0.004222768513137241
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 100,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 60.14438593148952,
+      "pitchover_rate_deg_s": 1.8564200092383665,
+      "miss_km": 0.001416704449098332
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 100,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 76.48836431064817,
+      "pitchover_rate_deg_s": 0.5520966963577918,
+      "miss_km": 2.443347513999365
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 100,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 82.65776707212193,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 16.68059350283426
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 120,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 50.08093935860961,
+      "pitchover_rate_deg_s": 0.8622869906990647,
+      "miss_km": 0.005287084833344932
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 120,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 11.48751498409547,
+      "pitchover_rate_deg_s": 6.121347056957894,
+      "miss_km": 0.0049149187184518795
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 120,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 25.690085291862488,
+      "pitchover_rate_deg_s": 5.758947432041168,
+      "miss_km": 0.002772897410147002
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 120,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 73.73629843434901,
+      "pitchover_rate_deg_s": 0.20615883847640584,
+      "miss_km": 0.000569525345383904
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 120,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 61.08658100347384,
+      "pitchover_rate_deg_s": 5.262130065384554,
+      "miss_km": 0.4467823328922555
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 150,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 45.723363518714905,
+      "pitchover_rate_deg_s": 0.6384439617395401,
+      "miss_km": 0.0033213025889837523
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 150,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 53.472443893086165,
+      "pitchover_rate_deg_s": 0.3580301289330228,
+      "miss_km": 0.002419505863206057
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 150,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 51.13715277268784,
+      "pitchover_rate_deg_s": 0.8713058142282493,
+      "miss_km": 0.0036120768440733976
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 150,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 50.49131092429161,
+      "pitchover_rate_deg_s": 1.324376168847082,
+      "miss_km": 0.00427832689488901
+    },
+    {
+      "dist_km": 160,
+      "alt_km": 150,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 48.415989965200424,
+      "pitchover_rate_deg_s": 2.3575518116354983,
+      "miss_km": 0.002216520245928914
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 60,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 80.57836885301886,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 27.96301231766116
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 60,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 81.78192847966756,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 49.633826723424505
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 80,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 66.95297893108409,
+      "pitchover_rate_deg_s": 0.9779606513712478,
+      "miss_km": 0.002832278739949819
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 80,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 80.83749670130813,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 16.608464616322987
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 80,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 81.80414709273091,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 35.43693663175493
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 80,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 82.45848176877766,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 49.98982874846613
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 100,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 43.38322448730469,
+      "pitchover_rate_deg_s": 2.924391174316411,
+      "miss_km": 0.006239053569497163
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 100,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 13.041305541992188,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0011161230995146338
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 100,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 81.16315700024961,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 9.78770871634138
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 100,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 81.95428435207225,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 25.766964984974248
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 100,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 82.50437724821592,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 39.268037390364796
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 120,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 61.357493200757744,
+      "pitchover_rate_deg_s": 0.49313020793015083,
+      "miss_km": 0.004240277071326206
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 120,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 8.954991538077593,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.005143012781444491
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 120,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 0.19380594066683443,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.002024361790809187
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 120,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 81.461982570066,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 6.9225521238770416
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 120,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 82.0154477036447,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 20.71370517707953
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 150,
+      "speed_kms": 1.0,
+      "pitch_angle_deg": 52.5450208587572,
+      "pitchover_rate_deg_s": 0.6426394828595231,
+      "miss_km": 0.004970357087299366
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 150,
+      "speed_kms": 1.5,
+      "pitch_angle_deg": 58.62395552628004,
+      "pitchover_rate_deg_s": 0.5114465943599478,
+      "miss_km": 0.0034903266474745225
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 150,
+      "speed_kms": 2.0,
+      "pitch_angle_deg": 20.416504085529596,
+      "pitchover_rate_deg_s": 6.03479777080941,
+      "miss_km": 0.003049800885365701
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 150,
+      "speed_kms": 2.5,
+      "pitch_angle_deg": 18.92996138819626,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.002563181606688146
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 150,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 41.78240181275862,
+      "pitchover_rate_deg_s": 9.989652699211407,
+      "miss_km": 0.0014404255981178423
+    }
+  ],
+  "gbi": [
+    {
+      "dist_km": 200,
+      "alt_km": 300,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 39.152422565734014,
+      "pitchover_rate_deg_s": 0.46981196849519774,
+      "miss_km": 0.007642203446828602
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 300,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 8.931865381076932,
+      "pitchover_rate_deg_s": 3.3006230770144684,
+      "miss_km": 0.005798766174846619
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 300,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 4.272137769119581,
+      "pitchover_rate_deg_s": 10.0,
+      "miss_km": 0.0021999958438259576
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 300,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 77.20845052020823,
+      "pitchover_rate_deg_s": 0.02131718829840544,
+      "miss_km": 13.069472429182465
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 300,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 77.22204534102028,
+      "pitchover_rate_deg_s": 0.0207275995514367,
+      "miss_km": 26.80597179545221
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 500,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 19.389528058272845,
+      "pitchover_rate_deg_s": 0.3361424470378492,
+      "miss_km": 0.011587783597999375
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 500,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 18.935149669647217,
+      "pitchover_rate_deg_s": 0.5440704882144924,
+      "miss_km": 0.011466694643541572
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 500,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 2.130581776817764,
+      "miss_km": 0.013580101122938112
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 500,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 31.59850610420108,
+      "pitchover_rate_deg_s": 0.643918706104158,
+      "miss_km": 0.011703091272484905
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 500,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 0.3673980236053467,
+      "pitchover_rate_deg_s": 3.474101543426507,
+      "miss_km": 0.004978342478535967
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 800,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 14.924854442549986,
+      "pitchover_rate_deg_s": 0.08536028626258357,
+      "miss_km": 0.007500839406433698
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 800,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 12.788521619903435,
+      "pitchover_rate_deg_s": 0.19603826890659876,
+      "miss_km": 0.013566505013441236
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 800,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 11.808242367534831,
+      "pitchover_rate_deg_s": 0.3079172425622313,
+      "miss_km": 0.00810480747711127
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 800,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 16.47890281141781,
+      "pitchover_rate_deg_s": 0.28133284017556104,
+      "miss_km": 0.013103659226016874
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 800,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 23.754311561374948,
+      "pitchover_rate_deg_s": 0.1719432309598158,
+      "miss_km": 0.007001352990005275
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1200,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 3.031962051987648,
+      "pitchover_rate_deg_s": 0.1577786594629272,
+      "miss_km": 0.03195070563779055
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1200,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 6.077809363352571,
+      "pitchover_rate_deg_s": 0.13510040548644364,
+      "miss_km": 0.04277714025728371
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1200,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 20.826308213174343,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 0.03054034876323131
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1200,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 0.6337176060304031,
+      "miss_km": 0.05281664575797252
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1200,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 10.330510408486589,
+      "pitchover_rate_deg_s": 0.16769707017810564,
+      "miss_km": 0.0039645630945085
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1800,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 9.135593491606414,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 2.222420456428367
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1800,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 6.832088470458984,
+      "pitchover_rate_deg_s": 0.02706604003906208,
+      "miss_km": 2.0455403161696464
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1800,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 9.548169761896133,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 2.2082774951257234
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1800,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 2.379529668163741,
+      "pitchover_rate_deg_s": 0.12489840389462059,
+      "miss_km": 0.026005723775007566
+    },
+    {
+      "dist_km": 200,
+      "alt_km": 1800,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 10.884582304607306,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 0.8585070693451436
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 300,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 76.66236763215737,
+      "pitchover_rate_deg_s": 0.04192899648110214,
+      "miss_km": 16.25745015040445
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 500,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 37.79901583492756,
+      "pitchover_rate_deg_s": 0.5481013931334016,
+      "miss_km": 0.015527976891948032
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 500,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 44.61081719887443,
+      "pitchover_rate_deg_s": 0.6511250054230893,
+      "miss_km": 0.01283597548745603
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 500,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 5.011805176734924,
+      "pitchover_rate_deg_s": 6.079383587837238,
+      "miss_km": 0.0047939225639812184
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 500,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 76.90769545342303,
+      "pitchover_rate_deg_s": 0.034275911609147294,
+      "miss_km": 31.75031600887143
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 800,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 2.382709647205791,
+      "miss_km": 0.025763409626245556
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 800,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 19.838953478028998,
+      "pitchover_rate_deg_s": 0.570234163076383,
+      "miss_km": 0.04666283288054009
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 800,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 26.659574568271637,
+      "pitchover_rate_deg_s": 0.5777580693364137,
+      "miss_km": 0.0377022169879863
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 800,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 33.872642409056425,
+      "pitchover_rate_deg_s": 0.5880949185462663,
+      "miss_km": 0.018763814229892588
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 800,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 44.80693280696869,
+      "pitchover_rate_deg_s": 0.4989646136760713,
+      "miss_km": 0.017288144436988947
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1200,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 19.326880743103175,
+      "pitchover_rate_deg_s": 0.15828138544820525,
+      "miss_km": 0.03487568072704081
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1200,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 18.178699679338024,
+      "pitchover_rate_deg_s": 0.23229625181411073,
+      "miss_km": 0.04506768044891411
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1200,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 15.938974783290178,
+      "pitchover_rate_deg_s": 0.3452540996018766,
+      "miss_km": 0.048381918259915835
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1200,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 18.71628847910324,
+      "pitchover_rate_deg_s": 0.37829769656527523,
+      "miss_km": 0.05070929410312851
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1200,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 17.537408530712128,
+      "pitchover_rate_deg_s": 0.5128162547945974,
+      "miss_km": 0.045972591466016274
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1800,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 14.573602453034937,
+      "pitchover_rate_deg_s": 0.07385586325317106,
+      "miss_km": 0.025429577602047643
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1800,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 19.553183859414276,
+      "pitchover_rate_deg_s": 0.024260174405931992,
+      "miss_km": 0.013233035990961836
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1800,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 15.569596489600372,
+      "pitchover_rate_deg_s": 0.10495063115376844,
+      "miss_km": 0.02374161460748006
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1800,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 14.691778358416286,
+      "pitchover_rate_deg_s": 0.15081073406344936,
+      "miss_km": 0.04592456625192406
+    },
+    {
+      "dist_km": 500,
+      "alt_km": 1800,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 20.023794654608537,
+      "pitchover_rate_deg_s": 0.09853021031666945,
+      "miss_km": 0.029256071254668656
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 500,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 65.87196527374908,
+      "pitchover_rate_deg_s": 0.3278531322721382,
+      "miss_km": 0.01863225207158932
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 800,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 1.9652861107257236,
+      "miss_km": 0.02981219273327145
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 800,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 41.20101483911276,
+      "pitchover_rate_deg_s": 0.5903571449220182,
+      "miss_km": 0.019588912823486484
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 800,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 8.555445043370128,
+      "pitchover_rate_deg_s": 3.1321205236017704,
+      "miss_km": 0.010741218333197772
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 800,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 76.28205151417293,
+      "pitchover_rate_deg_s": 0.051652281902893,
+      "miss_km": 18.53961588429376
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1200,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 5.843809127807617,
+      "pitchover_rate_deg_s": 0.6788097381591793,
+      "miss_km": 0.07539733818453462
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1200,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 5.35959791764617,
+      "pitchover_rate_deg_s": 0.8345889527350663,
+      "miss_km": 0.07428280320217698
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1200,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 16.610564589500427,
+      "pitchover_rate_deg_s": 0.7600998282432557,
+      "miss_km": 0.03910989569558953
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1200,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 17.959728240966797,
+      "pitchover_rate_deg_s": 0.9554729461669925,
+      "miss_km": 0.048963317491674964
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1200,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 18.799457446904853,
+      "pitchover_rate_deg_s": 1.2909550979034978,
+      "miss_km": 0.025856372387057167
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1800,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 5.525170315988362,
+      "pitchover_rate_deg_s": 0.4025223087519377,
+      "miss_km": 0.03656928043030086
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1800,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 1.4895702557339425,
+      "miss_km": 0.08236496854495172
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1800,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 0.6091696358838805,
+      "miss_km": 0.03652111389716805
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1800,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 7.0022868939558975,
+      "pitchover_rate_deg_s": 0.5570618224493946,
+      "miss_km": 0.03460556350704887
+    },
+    {
+      "dist_km": 1000,
+      "alt_km": 1800,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 0.0,
+      "pitchover_rate_deg_s": 2.2806148611009283,
+      "miss_km": 0.027996120363357153
+    },
+    {
+      "dist_km": 2000,
+      "alt_km": 1200,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 41.139970779418945,
+      "pitchover_rate_deg_s": 0.5513102531433102,
+      "miss_km": 0.03769382197218354
+    },
+    {
+      "dist_km": 2000,
+      "alt_km": 1200,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 16.38149642944336,
+      "pitchover_rate_deg_s": 1.9730735778808566,
+      "miss_km": 0.03252812619379801
+    },
+    {
+      "dist_km": 2000,
+      "alt_km": 1200,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 3.00162410736084,
+      "pitchover_rate_deg_s": 5.002534866333008,
+      "miss_km": 0.01760018048732719
+    },
+    {
+      "dist_km": 2000,
+      "alt_km": 1800,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 19.42562198638916,
+      "pitchover_rate_deg_s": 0.5481549501419063,
+      "miss_km": 0.07735991545739869
+    },
+    {
+      "dist_km": 2000,
+      "alt_km": 1800,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 6.214295826852322,
+      "pitchover_rate_deg_s": 0.9280766397714619,
+      "miss_km": 0.05541975155295876
+    },
+    {
+      "dist_km": 2000,
+      "alt_km": 1800,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 6.252471862593666,
+      "pitchover_rate_deg_s": 1.112538191489873,
+      "miss_km": 0.0493135262198158
+    },
+    {
+      "dist_km": 2000,
+      "alt_km": 1800,
+      "speed_kms": 6.0,
+      "pitch_angle_deg": 3.866082191467285,
+      "pitchover_rate_deg_s": 1.4659921646118197,
+      "miss_km": 0.046068595161894335
+    },
+    {
+      "dist_km": 2000,
+      "alt_km": 1800,
+      "speed_kms": 7.0,
+      "pitch_angle_deg": 44.67728311009705,
+      "pitchover_rate_deg_s": 0.478284404752776,
+      "miss_km": 0.03688105365746787
+    },
+    {
+      "dist_km": 3000,
+      "alt_km": 1800,
+      "speed_kms": 3.0,
+      "pitch_angle_deg": 77.3872901262302,
+      "pitchover_rate_deg_s": 0.0,
+      "miss_km": 0.5896881552999089
+    },
+    {
+      "dist_km": 3000,
+      "alt_km": 1800,
+      "speed_kms": 4.0,
+      "pitch_angle_deg": 49.41241157054901,
+      "pitchover_rate_deg_s": 0.5290012776851643,
+      "miss_km": 0.029658911745659346
+    },
+    {
+      "dist_km": 3000,
+      "alt_km": 1800,
+      "speed_kms": 5.0,
+      "pitch_angle_deg": 60.924790163596526,
+      "pitchover_rate_deg_s": 0.41307098866161485,
+      "miss_km": 0.013133017372928617
+    }
+  ],
+  "metadata": {
+    "earth_radius_km": 6371.0,
+    "gm": 398600441800000.0,
+    "dt": 0.5,
+    "thaad": {
+      "thrust_mps2": 80.0,
+      "burn_time_s": 30.0,
+      "max_speed_kms": 2.8
+    },
+    "gbi": {
+      "thrust_mps2": 45.0,
+      "burn_time_s": 200.0,
+      "max_speed_kms": 8.0
+    }
+  }
+}

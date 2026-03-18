@@ -12,11 +12,13 @@ export function createChromeController({ document }) {
   const navalButton = document.getElementById('navalToggle');
   const navalLabel = document.getElementById('navalToggleLabel');
   const navalSummaryLabel = document.getElementById('navalSummaryLabel');
-  const radarButton = document.getElementById('radarToggle');
-  const radarLabel = document.getElementById('radarToggleLabel');
   const radarSummaryLabel = document.getElementById('radarSummaryLabel');
-  const radarModeCycleButton = document.getElementById('radarModeCycle');
-  const radarModeCycleLabel = document.getElementById('radarModeCycleLabel');
+  const radarModeButtons = {
+    ground: document.getElementById('radarModeGround'),
+    satellite: document.getElementById('radarModeSatellite'),
+    interceptor: document.getElementById('radarModeInterceptor'),
+    off: document.getElementById('radarModeOff'),
+  };
   const siteFilterButton = document.getElementById('siteFilterToggle');
   const siteFilterLabel = document.getElementById('siteFilterToggleLabel');
   const warheadChip = document.getElementById('warheadCountChip');
@@ -52,12 +54,16 @@ export function createChromeController({ document }) {
       label: document.getElementById('viewContextLabel'),
       baseLabel: 'Borders/Cities',
     },
+    defense: {
+      button: document.getElementById('viewDefenseToggle'),
+      label: document.getElementById('viewDefenseLabel'),
+      baseLabel: 'Defense',
+    },
   };
 
   updateMissileButton({ mode: 'idle' });
   updateNavalButton({ enabled: false });
   updateRadarButton({ mode: 'off' });
-  updateRadarModeCycle({ mode: 'ground' });
   setWarheadCount(1);
   setViewButtonState('launch', true);
   setViewButtonState('radar', true);
@@ -74,13 +80,14 @@ export function createChromeController({ document }) {
       navalButton.addEventListener('click', handler);
       return () => navalButton.removeEventListener('click', handler);
     },
-    onToggleRadar(handler) {
-      radarButton.addEventListener('click', handler);
-      return () => radarButton.removeEventListener('click', handler);
-    },
-    onCycleRadarMode(handler) {
-      radarModeCycleButton.addEventListener('click', handler);
-      return () => radarModeCycleButton.removeEventListener('click', handler);
+    onSelectRadarMode(handler) {
+      const listeners = [];
+      for (const [mode, btn] of Object.entries(radarModeButtons)) {
+        const listener = () => handler(mode);
+        btn.addEventListener('click', listener);
+        listeners.push(() => btn.removeEventListener('click', listener));
+      }
+      return () => listeners.forEach((fn) => fn());
     },
     onToggleSiteFilter(handler) {
       siteFilterButton.addEventListener('click', handler);
@@ -109,6 +116,9 @@ export function createChromeController({ document }) {
     onToggleViewContext(handler) {
       return bindViewToggle(viewButtons.context.button, handler);
     },
+    onToggleViewDefense(handler) {
+      return bindViewToggle(viewButtons.defense.button, handler);
+    },
     onOpenSettings(handler) {
       settingsButton.addEventListener('click', handler);
       return () => settingsButton.removeEventListener('click', handler);
@@ -127,7 +137,7 @@ export function createChromeController({ document }) {
     },
     setRadarState(state) {
       updateRadarButton(state);
-      updateRadarModeCycle(state);
+      updateRadarModeButtons(state);
     },
     setSiteFilter(category) {
       siteFilterLabel.textContent = CATEGORY_LABELS[category] ?? 'All Sites';
@@ -185,18 +195,14 @@ export function createChromeController({ document }) {
   }
 
   function updateRadarButton({ mode = 'off' } = {}) {
-    const enabled = mode !== 'off';
-    radarLabel.textContent = enabled ? 'Disable Radar Mode' : 'Radar Mode';
-    radarSummaryLabel.textContent =
-      mode === 'ground' ? 'Ground' : mode === 'satellite' ? 'Satellite' : 'Off';
-    radarButton.dataset.enabled = enabled ? 'true' : 'false';
-    radarButton.setAttribute('aria-pressed', String(enabled));
+    const summaryLabels = { ground: 'Ground', satellite: 'Satellite', interceptor: 'Interceptor' };
+    radarSummaryLabel.textContent = summaryLabels[mode] ?? 'Off';
   }
 
-  function updateRadarModeCycle({ mode = 'off' } = {}) {
-    const nextLabel = mode === 'satellite' ? 'Satellite Early Warning' : 'Ground Radar';
-    radarModeCycleLabel.textContent = nextLabel;
-    radarModeCycleButton.disabled = mode === 'off';
+  function updateRadarModeButtons({ mode = 'off' } = {}) {
+    for (const [btnMode, btn] of Object.entries(radarModeButtons)) {
+      btn.dataset.active = String(btnMode === mode && mode !== 'off');
+    }
   }
 
   function setWarheadCount(count) {

@@ -28,6 +28,10 @@ export function createViewStateController({
       apply();
       return state[viewKey];
     },
+    reset() {
+      Object.assign(state, DEFAULT_VIEW_STATE);
+      apply();
+    },
   };
 
   function apply() {
@@ -44,6 +48,7 @@ export function createViewStateController({
     chrome.setViewState('naval', state.naval);
     chrome.setViewState('bases', state.bases);
     chrome.setViewState('context', state.context);
+    chrome.setViewState('defense', state.defense);
 
     const radarVisible = state.radar || getRadarMode() !== 'off';
     radarVisualSystem.setAssetsVisible(radarVisible);

@@ -69,6 +69,9 @@ export async function bootstrapApplication({ mountNode, document, window, enviro
   const detachToggleGodView = gameMenu.onToggleGodView((enabled) => {
     sessionStore.setGodView(enabled);
   });
+  const detachDefenseTargetOwn = gameMenu.onDefenseTargetOwn((enabled) => {
+    sessionStore.setDefenseTargetOwn(enabled);
+  });
 
   return {
     dispose() {
@@ -79,6 +82,7 @@ export async function bootstrapApplication({ mountNode, document, window, enviro
       detachResume();
       detachChangeCountry();
       detachToggleGodView();
+      detachDefenseTargetOwn();
       app.dispose();
     },
   };

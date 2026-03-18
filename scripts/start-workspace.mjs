@@ -21,8 +21,8 @@ const concurrently = spawn(
     'app,server',
     '--prefix-colors',
     'cyan,magenta',
-    'npm run start -w deterrence-app',
-    'npm run start -w deterrence-server',
+    'npm run start --workspace=packages/app',
+    'npm run start --workspace=packages/server',
   ],
   {
     stdio: 'inherit',

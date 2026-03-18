@@ -842,3 +842,138 @@ export function createCruiser(variant) {
 
   return { object3d: group, type: 'cruiser' };
 }
+
+// ====================================================================
+//  SUBMARINE — variant-aware
+// ====================================================================
+
+const SUBMARINE_PALETTES = [
+  // 0 – Virginia-class (US – very dark grey)
+  {
+    hull: 0x2a2e34,
+    hullDark: 0x1a1e22,
+    sail: 0x3a3e44,
+    planes: 0x4a4e54,
+    waterline: 0x8b0000,
+  },
+  // 1 – Type 094 (Chinese – medium dark grey)
+  {
+    hull: 0x3a4048,
+    hullDark: 0x242830,
+    sail: 0x4a5058,
+    planes: 0x5a5e66,
+    waterline: 0x882010,
+  },
+  // 2 – Yasen-class (Russian – dark)
+  {
+    hull: 0x2e3238,
+    hullDark: 0x1c2026,
+    sail: 0x3e4248,
+    planes: 0x4e5258,
+    waterline: 0x701515,
+  },
+];
+
+let _submarineCounter = 0;
+
+export function createSubmarine(variant) {
+  const vi = variant ?? _submarineCounter++;
+  const palette = SUBMARINE_PALETTES[vi % SUBMARINE_PALETTES.length];
+  const group = new THREE.Group();
+
+  const L = 0.0013;
+  const B = 0.00024;
+  const H = 0.00024;
+
+  const hullMat = new THREE.MeshStandardMaterial({ color: palette.hull, roughness: 0.6, metalness: 0.4 });
+  const hullDarkMat = new THREE.MeshStandardMaterial({ color: palette.hullDark, roughness: 0.7, metalness: 0.3 });
+  const sailMat = new THREE.MeshStandardMaterial({ color: palette.sail, roughness: 0.5, metalness: 0.4 });
+  const planeMat = new THREE.MeshStandardMaterial({ color: palette.planes, roughness: 0.5, metalness: 0.5 });
+  const wlMat = new THREE.MeshStandardMaterial({ color: palette.waterline, roughness: 0.8, metalness: 0.1 });
+
+  // ─── Main hull (capsule) ────────────────────────────────────────
+  const hullGeo = new THREE.CapsuleGeometry(B * 0.5, L * 0.65, 8, 16);
+  hullGeo.rotateX(Math.PI / 2);
+  const hull = new THREE.Mesh(hullGeo, hullMat);
+  hull.position.set(0, 0, L * 0.32);
+  group.add(hull);
+
+  // Waterline band
+  const wlGeo = new THREE.CapsuleGeometry(B * 0.52, L * 0.55, 6, 12);
+  wlGeo.rotateX(Math.PI / 2);
+  const waterline = new THREE.Mesh(wlGeo, wlMat);
+  waterline.position.set(0, -B * 0.08, L * 0.32);
+  waterline.scale.set(1, 0.4, 1);
+  group.add(waterline);
+
+  // ─── Conning tower (sail) ───────────────────────────────────────
+  const sailW = B * 0.28;
+  const sailH = H * 0.85;
+  const sailL = L * 0.14;
+  const sailGeo = createRoundedBox(sailW, sailH, sailL, sailW * 0.2);
+  const sail = new THREE.Mesh(sailGeo, sailMat);
+  sail.position.set(0, B * 0.35, L * 0.45);
+  group.add(sail);
+
+  // Sail top fairing
+  const fairGeo = new THREE.BoxGeometry(sailW * 0.7, sailH * 0.15, sailL * 0.6);
+  const fairing = new THREE.Mesh(fairGeo, sailMat);
+  fairing.position.set(0, B * 0.35 + sailH + sailH * 0.075, L * 0.45);
+  group.add(fairing);
+
+  // Periscope masts
+  const mastGeo = new THREE.CylinderGeometry(B * 0.015, B * 0.015, H * 0.5, 6);
+  const mast1 = new THREE.Mesh(mastGeo, planeMat);
+  mast1.position.set(0, B * 0.35 + sailH + H * 0.25, L * 0.47);
+  group.add(mast1);
+  const mast2 = new THREE.Mesh(mastGeo.clone(), planeMat);
+  mast2.position.set(B * 0.04, B * 0.35 + sailH + H * 0.2, L * 0.44);
+  group.add(mast2);
+
+  // ─── Dive planes (sail-mounted) ─────────────────────────────────
+  const dpGeo = new THREE.BoxGeometry(B * 1.4, H * 0.04, L * 0.05);
+  const divePlanes = new THREE.Mesh(dpGeo, planeMat);
+  divePlanes.position.set(0, B * 0.12, L * 0.45);
+  group.add(divePlanes);
+
+  // ─── Stern planes + rudder ──────────────────────────────────────
+  // Horizontal stabilizers
+  const sternPlaneGeo = new THREE.BoxGeometry(B * 1.1, H * 0.03, L * 0.045);
+  const sternPlanes = new THREE.Mesh(sternPlaneGeo, planeMat);
+  sternPlanes.position.set(0, 0, L * 0.01);
+  group.add(sternPlanes);
+
+  // Vertical rudder
+  const rudderGeo = new THREE.BoxGeometry(B * 0.04, H * 0.55, L * 0.045);
+  const rudder = new THREE.Mesh(rudderGeo, planeMat);
+  rudder.position.set(0, H * 0.12, L * 0.01);
+  group.add(rudder);
+
+  // ─── Propeller shroud ──────────────────────────────────────────
+  const shroudGeo = new THREE.TorusGeometry(B * 0.32, B * 0.04, 8, 16);
+  const shroud = new THREE.Mesh(shroudGeo, hullDarkMat);
+  shroud.position.set(0, 0, -L * 0.01);
+  group.add(shroud);
+
+  // Propeller blades (simple cross)
+  const bladeGeo = new THREE.BoxGeometry(B * 0.5, B * 0.03, L * 0.008);
+  const blade1 = new THREE.Mesh(bladeGeo, hullDarkMat);
+  blade1.position.set(0, 0, -L * 0.01);
+  group.add(blade1);
+  const blade2 = new THREE.Mesh(bladeGeo.clone(), hullDarkMat);
+  blade2.position.set(0, 0, -L * 0.01);
+  blade2.rotation.z = Math.PI / 2;
+  group.add(blade2);
+
+  // ─── Torpedo tube hatches (bow) ─────────────────────────────────
+  for (let i = 0; i < 4; i++) {
+    const hatchGeo = new THREE.CylinderGeometry(B * 0.045, B * 0.045, B * 0.01, 8);
+    hatchGeo.rotateX(Math.PI / 2);
+    const hatch = new THREE.Mesh(hatchGeo, hullDarkMat);
+    const angle = ((i - 1.5) / 3.5) * 0.6;
+    hatch.position.set(Math.sin(angle) * B * 0.22, Math.cos(angle) * B * 0.22, L * 0.65);
+    group.add(hatch);
+  }
+
+  return { object3d: group, type: 'submarine' };
+}

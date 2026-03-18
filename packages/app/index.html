@@ -30,6 +30,10 @@
             <kbd>5</kbd>
             <span id="viewContextLabel" class="sr-only">Borders/Cities Off</span>
           </button>
+          <button id="viewDefenseToggle" class="view-chip" type="button">
+            <kbd>6</kbd>
+            <span id="viewDefenseLabel" class="sr-only">Defense On</span>
+          </button>
         </div>
       </div>
 
@@ -60,19 +64,30 @@
           </div>
         </details>
 
-        <details class="control-section">
+        <details class="control-section" id="radarSection">
           <summary>
-            <span>Radar</span>
+            <span>Radar & Defense</span>
             <small id="radarSummaryLabel">Off</small>
           </summary>
-          <div class="control-body">
-            <button id="radarToggle" class="control-button" type="button">
-              <kbd>R</kbd>
-              <span id="radarToggleLabel">Radar Mode</span>
+          <div class="control-body radar-mode-list">
+            <button id="radarModeGround" class="radar-mode-btn" type="button" data-mode="ground">
+              <img src="/assets/military/assets/spaceforce-radar.svg" alt="" class="radar-mode-icon" />
+              <span class="radar-mode-label">Ground Radar</span>
+              <kbd>1</kbd>
             </button>
-            <button id="radarModeCycle" class="control-button" type="button">
-              <kbd>Tab</kbd>
-              <span id="radarModeCycleLabel">Ground Radar</span>
+            <button id="radarModeSatellite" class="radar-mode-btn" type="button" data-mode="satellite">
+              <img src="/assets/military/assets/spaceforce-sbirs.svg" alt="" class="radar-mode-icon" />
+              <span class="radar-mode-label">Early Warning Satellite</span>
+              <kbd>2</kbd>
+            </button>
+            <button id="radarModeInterceptor" class="radar-mode-btn" type="button" data-mode="interceptor">
+              <img src="/assets/military/assets/spaceforce-ngi.svg" alt="" class="radar-mode-icon" />
+              <span class="radar-mode-label">Interceptor Battery</span>
+              <kbd>3</kbd>
+            </button>
+            <button id="radarModeOff" class="radar-mode-btn radar-mode-close" type="button" data-mode="off">
+              <span class="radar-mode-label">Close</span>
+              <kbd>Esc</kbd>
             </button>
           </div>
         </details>
@@ -102,32 +117,28 @@
         </div>
       </aside>
 
-      <section class="hud">
-        <div class="metric">
-          <span class="label">Stage</span>
-          <strong id="missileStageValue">Standby</strong>
+      <section id="infoCard" class="hud info-card" hidden>
+        <div class="info-card-header">
+          <span id="infoCardType" class="info-card-type">ICBM</span>
+          <span id="infoCardId" class="info-card-id"></span>
+          <button id="infoCardClose" class="info-card-close" type="button">&times;</button>
         </div>
-        <div class="metric">
-          <span class="label">Speed</span>
-          <strong id="missileSpeedValue">-</strong>
+        <div class="info-card-grid">
+          <div class="metric"><span class="label">Phase</span><strong id="infoPhase">-</strong></div>
+          <div class="metric"><span class="label">Speed</span><strong id="infoSpeed">-</strong></div>
+          <div class="metric"><span class="label">Altitude</span><strong id="infoAltitude">-</strong></div>
+          <div class="metric"><span class="label">Flight Time</span><strong id="infoFlightTime">-</strong></div>
+          <div id="infoExtra1Wrap" class="metric"><span id="infoExtra1Label" class="label">-</span><strong id="infoExtra1Value">-</strong></div>
+          <div id="infoExtra2Wrap" class="metric"><span id="infoExtra2Label" class="label">-</span><strong id="infoExtra2Value">-</strong></div>
         </div>
-        <div class="metric">
-          <span class="label">Altitude</span>
-          <strong id="missileAltitudeValue">-</strong>
-        </div>
-        <div class="metric">
-          <span class="label">Time To Impact</span>
-          <strong id="timeToImpactValue">-</strong>
-        </div>
-        <div class="metric">
-          <span class="label">Range To Target</span>
-          <strong id="rangeToTargetValue">-</strong>
-        </div>
-        <div class="metric">
-          <span class="label">Apogee</span>
-          <strong id="apogeeValue">-</strong>
-        </div>
+        <div id="infoCardActions" class="info-card-actions"></div>
       </section>
+
+      <div id="gameClock" class="game-clock" aria-label="Mission clock" hidden>
+        <div class="game-clock-label">MISSION CLOCK</div>
+        <div id="gameClockTime" class="game-clock-time">06:00:00Z</div>
+        <div id="gameClockDate" class="game-clock-date">DAY 1 &mdash; 15 MAR 2026</div>
+      </div>
 
       <div id="sceneRoot" class="scene-root" aria-label="3D Earth simulation"></div>
 
@@ -140,6 +151,17 @@
             Enter to lock in the highlighted nation.
           </p>
           <div id="nationSelectOptions" class="nation-options" aria-label="Playable nations"></div>
+
+          <div class="scenario-section">
+            <p class="eyebrow">Scenario</p>
+            <div id="scenarioOptions" class="scenario-options">
+              <button type="button" class="scenario-option selected" data-scenario="">
+                <span class="scenario-name">Free Play</span>
+                <span class="scenario-desc">No scripted events. Full control over all assets.</span>
+              </button>
+            </div>
+          </div>
+
           <button id="nationStartButton" class="menu-primary" type="button">Enter Battle</button>
           <p id="devModeBadge" class="menu-badge" hidden>
             Development mode active: env defaults and keypad 9 god view are enabled.
@@ -161,6 +183,10 @@
           <label class="menu-toggle">
             <input id="settingsGodViewField" type="checkbox" />
             <span>God View</span>
+          </label>
+          <label class="menu-toggle">
+            <input id="settingsDefenseTestField" type="checkbox" checked />
+            <span>Defense targets own ICBMs</span>
           </label>
           <p id="settingsStatusText" class="menu-copy">Country view enabled</p>
           <div class="menu-actions">

@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import {
   COUNTRY_SPACEPORTS,
-  EARLY_WARNING_SATELLITE_PRESET,
-  GEO_RADIUS_UNITS,
-  GEO_SLOTS,
   GROUND_RADAR_PRESET,
+  GEO_SLOTS,
+  INTERCEPTOR_PRESETS,
+  computeFootprintRadiusKm,
+  altitudeKmToOrbitRadiusUnits,
+  EARTH_RADIUS_KM,
 } from '../game/data/radarCatalog.js';
 import {
   computeOrbitalVelocity,
@@ -18,26 +20,66 @@ const LAUNCH_PATH_LIMIT = 360;
 const VERTICAL_ASCENT_SECONDS = 12;
 const PITCH_PROGRAM_END_SECONDS = 140;
 const FAIRING_SEP_ALTITUDE_UNITS = 0.11;
-const LAUNCH_SEQUENCE = [
-  { name: 'First Stage', durationSeconds: 155, thrustMps2: 34, visualStage: 0, hasThrust: true },
-  { name: 'Stage Separation', durationSeconds: 6, thrustMps2: 0, visualStage: 0, hasThrust: false },
-  {
-    name: 'Upper Stage – Orbit Insertion',
-    durationSeconds: 200,
-    thrustMps2: 18,
-    visualStage: 1,
-    hasThrust: true,
-  },
-  { name: 'Parking Orbit', durationSeconds: 300, thrustMps2: 0, visualStage: 2, hasThrust: false },
-  {
-    name: 'Upper Stage – Transfer Burn',
-    durationSeconds: 185,
-    thrustMps2: 14,
-    visualStage: 2,
-    hasThrust: true,
-  },
-];
+
+function buildLaunchSequence(targetAltitudeKm) {
+  // Scale durations to target altitude — LEO needs much less time than GEO
+  const altitudeFraction = Math.min(targetAltitudeKm / 35786, 1);
+  const smoothFraction = altitudeFraction * altitudeFraction * (3 - 2 * altitudeFraction);
+
+  // Orbit insertion: short for LEO (~60s), long for GEO (~200s)
+  const insertionDuration = 60 + smoothFraction * 140;
+  // Parking coast: brief for LEO (~30s), longer for GEO (~300s)
+  const parkingDuration = 30 + smoothFraction * 270;
+  // Transfer burn: minimal for LEO (~15s), substantial for GEO (~185s)
+  const transferBurnDuration = 15 + smoothFraction * 170;
+
+  return [
+    { name: 'First Stage', durationSeconds: 155, thrustMps2: 34, visualStage: 0, hasThrust: true },
+    { name: 'Stage Separation', durationSeconds: 6, thrustMps2: 0, visualStage: 0, hasThrust: false },
+    {
+      name: 'Upper Stage \u2013 Orbit Insertion',
+      durationSeconds: insertionDuration,
+      thrustMps2: 18,
+      visualStage: 1,
+      hasThrust: true,
+    },
+    { name: 'Parking Orbit', durationSeconds: parkingDuration, thrustMps2: 0, visualStage: 2, hasThrust: false },
+    {
+      name: 'Upper Stage \u2013 Transfer Burn',
+      durationSeconds: transferBurnDuration,
+      thrustMps2: 14,
+      visualStage: 2,
+      hasThrust: true,
+    },
+  ];
+}
+
 const SATELLITE_TRANSFER_PHASE = {
+  transfer: {
+    name: 'Transfer',
+    maxThrustMetersPerSecondSquared: 12,
+    radialGain: 3.2e-4,
+    tangentialGain: 6.0e-4,
+    dampingGain: 1.8e-3,
+  },
+  circularize: {
+    name: 'Circularize',
+    maxThrustMetersPerSecondSquared: 6,
+    radialGain: 2.4e-4,
+    tangentialGain: 4.5e-4,
+    dampingGain: 2.2e-3,
+  },
+  operational: {
+    name: 'Operational',
+    maxThrustMetersPerSecondSquared: 0.5,
+    radialGain: 4.0e-5,
+    tangentialGain: 8.0e-5,
+    dampingGain: 3.0e-4,
+  },
+};
+
+// Legacy gains for GEO position-tracking controller
+const GEO_TRANSFER_PHASE = {
   transfer: {
     name: 'Transfer',
     maxThrustMetersPerSecondSquared: 2.8,
@@ -62,19 +104,15 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
   const earthRadiusUnits = worldConfig.earthRadius;
   const earthRotationRate = (Math.PI * 2) / simulationConfig.earthRotationPeriodSeconds;
   const gravitationalParameter = simulationConfig.gravitationalConstant * worldConfig.earthMass;
-  const geoCircularVelocityUnits =
-    computeOrbitalVelocity({
-      gravitationalConstant: simulationConfig.gravitationalConstant,
-      centralMass: worldConfig.earthMass,
-      radiusMeters: GEO_RADIUS_UNITS * simulationConfig.scaleMeters,
-    }) / simulationConfig.scaleMeters;
 
   const groundRadars = [];
   const satellites = [];
   const launches = [];
+  const interceptorSites = [];
   let nextGroundRadarId = 1;
   let nextSatelliteId = 1;
   let nextLaunchId = 1;
+  let nextInterceptorSiteId = 1;
 
   return {
     placeGroundRadar({ countryIso3, lat, lon }) {
@@ -89,16 +127,99 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
       groundRadars.push(radar);
       return radar;
     },
-    launchEarlyWarningSatellite({ countryIso3, slotLongitude, earthRotationRadians }) {
+    placeInterceptorSite({ countryIso3, lat, lon, type }) {
+      const preset = INTERCEPTOR_PRESETS[type];
+      if (!preset) return null;
+      const site = {
+        id: `interceptor-site-${nextInterceptorSiteId}`,
+        countryIso3,
+        latitude: lat,
+        longitude: lon,
+        type: preset.type,
+        label: preset.shortLabel,
+        interceptorsRemaining: preset.interceptorsPerSite,
+        interceptorsTotal: preset.interceptorsPerSite,
+        maxRangeKm: preset.maxRangeKm,
+        interceptAltitudeMinKm: preset.interceptAltitudeMinKm,
+        interceptAltitudeMaxKm: preset.interceptAltitudeMaxKm,
+        burnTimeSeconds: preset.burnTimeSeconds,
+        thrustMps2: preset.thrustMps2,
+        maxSpeedKmS: preset.maxSpeedKmS,
+        killProbability: preset.killProbability,
+      };
+      nextInterceptorSiteId += 1;
+      interceptorSites.push(site);
+      return site;
+    },
+    consumeInterceptor(siteId) {
+      const site = interceptorSites.find((s) => s.id === siteId);
+      if (site && site.interceptorsRemaining > 0) {
+        site.interceptorsRemaining -= 1;
+        return true;
+      }
+      return false;
+    },
+    getInterceptorSites() {
+      return interceptorSites;
+    },
+    // Instantly deploy a satellite already in its operational orbit (for scenarios)
+    deployOperationalSatellite({ countryIso3, slotLongitude, earthRotationRadians, altitudeKm }) {
+      const targetRadiusUnits = altitudeKmToOrbitRadiusUnits(altitudeKm);
+      const isGeostationary = altitudeKm >= 35000;
+      const footprintRadiusKm = computeFootprintRadiusKm(altitudeKm);
+      const desired = computeDesiredOrbitState({
+        slotLongitude,
+        earthRotationRadians,
+        earthRotationRate,
+        targetRadiusUnits,
+        isGeostationary,
+      });
+      const id = `ew-sat-${nextSatelliteId}`;
+      nextSatelliteId += 1;
+      satellites.push({
+        id,
+        countryIso3,
+        slotLongitude,
+        altitudeKm,
+        inclinationDeg: 0,
+        raanDeg: 0,
+        targetRadiusUnits,
+        isGeostationary,
+        spaceport: COUNTRY_SPACEPORTS[countryIso3] ?? null,
+        footprintRadiusKm,
+        initialEarthRotationRadians: earthRotationRadians,
+        flightTimeSeconds: 0,
+        sampleElapsed: 0,
+        phase: 'operational',
+        stageLabel: 'Operational',
+        operational: true,
+        position: desired.position,
+        velocity: desired.velocity,
+        attitudeDirection: desired.position.clone().normalize().multiplyScalar(-1),
+      });
+      return id;
+    },
+
+    launchEarlyWarningSatellite({ countryIso3, slotLongitude, earthRotationRadians, altitudeKm, inclinationDeg = 0, raanDeg = 0 }) {
       const spaceport = COUNTRY_SPACEPORTS[countryIso3];
       if (!spaceport) {
         return null;
       }
 
+      const targetRadiusUnits = altitudeKmToOrbitRadiusUnits(altitudeKm);
+      const isGeostationary = altitudeKm >= 35000 && inclinationDeg < 2;
+      const launchSequence = buildLaunchSequence(altitudeKm);
+
       const launch = {
         id: `sat-launch-${nextLaunchId}`,
         countryIso3,
         slotLongitude,
+        altitudeKm,
+        inclinationDeg,
+        raanDeg,
+        targetRadiusUnits,
+        isGeostationary,
+        launchSequence,
         spaceport,
         state: createLaunchVehicleState({
           countryIso3,
@@ -142,7 +263,6 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
           satellite,
           deltaSeconds,
           earthRotationRate,
-          geoCircularVelocityUnits,
           gravitationalParameter,
           simulationConfig,
         });
@@ -151,28 +271,45 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
     getSnapshot() {
       return {
         groundRadars: groundRadars.map((radar) => ({ ...radar })),
-        satellites: satellites.map((satellite) => ({
-          id: satellite.id,
-          countryIso3: satellite.countryIso3,
-          slotLongitude: satellite.slotLongitude,
-          orbitalRadiusUnits: satellite.position.length(),
-          footprintRadiusKm: satellite.footprintRadiusKm,
-          spaceport: { ...satellite.spaceport },
-          phase: satellite.phase,
-          stageLabel: satellite.stageLabel,
-          operational: satellite.operational,
-          position: satellite.position.clone(),
-          velocity: satellite.velocity.clone(),
-          direction: satellite.attitudeDirection.clone(),
-        })),
+        satellites: satellites.map((satellite) => {
+          const currentRadiusUnits = satellite.position.length();
+          const currentAltitudeKm = (currentRadiusUnits - 6.371) * 1000;
+          const speedMps = satellite.velocity.length() * simulationConfig.scaleMeters;
+          return {
+            id: satellite.id,
+            countryIso3: satellite.countryIso3,
+            slotLongitude: satellite.slotLongitude,
+            altitudeKm: satellite.altitudeKm,
+            inclinationDeg: satellite.inclinationDeg ?? 0,
+            raanDeg: satellite.raanDeg ?? 0,
+            isGeostationary: satellite.isGeostationary,
+            orbitalRadiusUnits: currentRadiusUnits,
+            currentAltitudeKm: Math.round(currentAltitudeKm),
+            currentSpeedKmS: Math.round(speedMps / 100) / 10,
+            targetRadiusUnits: satellite.targetRadiusUnits,
+            footprintRadiusKm: satellite.footprintRadiusKm,
+            spaceport: { ...satellite.spaceport },
+            phase: satellite.phase,
+            stageLabel: satellite.stageLabel,
+            operational: satellite.operational,
+            flightTimeSeconds: satellite.flightTimeSeconds,
+            position: satellite.position.clone(),
+            velocity: satellite.velocity.clone(),
+            direction: satellite.attitudeDirection.clone(),
+          };
+        }),
         launches: launches.map((launch) => ({
           id: launch.id,
           countryIso3: launch.countryIso3,
           slotLongitude: launch.slotLongitude,
+          altitudeKm: launch.altitudeKm,
           phase: launch.state.phase,
           stageIndex: launch.state.stageIndex,
           stageLabel: launch.state.stageLabel,
           engineOn: launch.state.engineOn,
+          fairingSeparated: launch.state.fairingSeparated,
+          flightTimeSeconds: launch.state.flightTimeSeconds,
+          sequenceIndex: launch.state.sequenceIndex,
           position: launch.state.position.clone(),
           velocity: launch.state.velocity.clone(),
           direction: launch.state.attitudeDirection.clone(),
@@ -180,6 +317,7 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
           spaceport: { ...launch.spaceport },
         })),
         geoSlots: GEO_SLOTS.map((slot) => ({ ...slot })),
+        interceptorSites: interceptorSites.map((site) => ({ ...site })),
       };
     },
   };
@@ -225,7 +363,7 @@ function createLaunchVehicleState({
     sequenceTimeSeconds: 0,
     sampleElapsed: 0,
     stageIndex: 0,
-    stageLabel: LAUNCH_SEQUENCE[0].name,
+    stageLabel: 'First Stage',
     phase: 'boost',
     engineOn: true,
     fairingSeparated: false,
@@ -238,12 +376,18 @@ function createLaunchVehicleState({
 }
 
 function createSatelliteStateFromLaunch({ id, launch }) {
+  const footprintRadiusKm = computeFootprintRadiusKm(launch.altitudeKm);
   return {
     id,
     countryIso3: launch.countryIso3,
     slotLongitude: launch.slotLongitude,
+    altitudeKm: launch.altitudeKm,
+    inclinationDeg: launch.inclinationDeg ?? 0,
+    raanDeg: launch.raanDeg ?? 0,
+    targetRadiusUnits: launch.targetRadiusUnits,
+    isGeostationary: launch.isGeostationary,
     spaceport: launch.spaceport,
-    footprintRadiusKm: EARLY_WARNING_SATELLITE_PRESET.footprintRadiusKm,
+    footprintRadiusKm,
     initialEarthRotationRadians: launch.state.initialEarthRotationRadians,
     flightTimeSeconds: launch.state.flightTimeSeconds,
     sampleElapsed: 0,
@@ -265,15 +409,19 @@ function stepLaunchVehicle({
   simulationConfig,
 }) {
   const state = launch.state;
-  const seq = LAUNCH_SEQUENCE[Math.min(state.sequenceIndex, LAUNCH_SEQUENCE.length - 1)];
+  const launchSequence = launch.launchSequence;
+  const targetRadiusUnits = launch.targetRadiusUnits;
+  const seq = launchSequence[Math.min(state.sequenceIndex, launchSequence.length - 1)];
   const thrustAccelerationUnits = seq.hasThrust ? seq.thrustMps2 / simulationConfig.scaleMeters : 0;
 
   const earthRotationRadians =
     state.initialEarthRotationRadians + earthRotationRate * state.flightTimeSeconds;
-  const desiredGeoState = computeDesiredGeoState({
+  const desiredState = computeDesiredOrbitState({
     slotLongitude: state.slotLongitude,
     earthRotationRadians,
     earthRotationRate,
+    targetRadiusUnits,
+    isGeostationary: launch.isGeostationary,
   });
 
   integrateStateRK4({
@@ -298,7 +446,8 @@ function stepLaunchVehicle({
         launchAzimuth: state.launchAzimuth,
         earthRadiusUnits,
         sequenceIndex: state.sequenceIndex,
-        desiredGeoPosition: desiredGeoState.position,
+        desiredPosition: desiredState.position,
+        targetRadiusUnits,
       });
 
       return gravity.add(thrustDirection.multiplyScalar(thrustAccelerationUnits));
@@ -318,12 +467,16 @@ function stepLaunchVehicle({
         launchAzimuth: state.launchAzimuth,
         earthRadiusUnits,
         sequenceIndex: state.sequenceIndex,
-        desiredGeoPosition: desiredGeoState.position,
+        desiredPosition: desiredState.position,
+        targetRadiusUnits,
       }),
     );
   } else if (state.velocity.lengthSq() > 1e-12) {
     state.attitudeDirection.copy(state.velocity).normalize();
   }
+
+  // Collision guard for launch vehicle
+  enforceMinimumAltitude(state.position, state.velocity, earthRadiusUnits);
 
   const altitudeUnits = state.position.length() - earthRadiusUnits;
   if (!state.fairingSeparated && altitudeUnits > FAIRING_SEP_ALTITUDE_UNITS) {
@@ -339,10 +492,10 @@ function stepLaunchVehicle({
   }
 
   if (state.sequenceTimeSeconds >= seq.durationSeconds) {
-    if (state.sequenceIndex < LAUNCH_SEQUENCE.length - 1) {
+    if (state.sequenceIndex < launchSequence.length - 1) {
       state.sequenceIndex += 1;
       state.sequenceTimeSeconds = 0;
-      const next = LAUNCH_SEQUENCE[state.sequenceIndex];
+      const next = launchSequence[state.sequenceIndex];
       state.stageLabel = next.name;
       state.stageIndex = next.visualStage;
       state.engineOn = next.hasThrust;
@@ -357,39 +510,60 @@ function stepSatellite({
   satellite,
   deltaSeconds,
   earthRotationRate,
-  geoCircularVelocityUnits,
   gravitationalParameter,
   simulationConfig,
 }) {
+  const targetRadiusUnits = satellite.targetRadiusUnits;
+  const earthRadiusUnits = 6.371;
+  const scaleMeters = simulationConfig.scaleMeters;
+  const circularVelocityUnits =
+    computeOrbitalVelocity({
+      gravitationalConstant: simulationConfig.gravitationalConstant,
+      centralMass: gravitationalParameter / simulationConfig.gravitationalConstant,
+      radiusMeters: targetRadiusUnits * scaleMeters,
+    }) / scaleMeters;
+
+  if (satellite.isGeostationary) {
+    stepGeoSatellite({ satellite, deltaSeconds, earthRotationRate, gravitationalParameter, simulationConfig, targetRadiusUnits, circularVelocityUnits, earthRadiusUnits });
+  } else {
+    stepNonGeoSatellite({ satellite, deltaSeconds, gravitationalParameter, simulationConfig, targetRadiusUnits, circularVelocityUnits, earthRadiusUnits });
+  }
+
+  satellite.flightTimeSeconds += deltaSeconds;
+  satellite.attitudeDirection.copy(
+    satellite.velocity.lengthSq() > 1e-12
+      ? satellite.velocity.clone().normalize()
+      : satellite.position.clone().normalize(),
+  );
+}
+
+function stepGeoSatellite({ satellite, deltaSeconds, earthRotationRate, gravitationalParameter, simulationConfig, targetRadiusUnits, circularVelocityUnits, earthRadiusUnits }) {
   const earthRotationRadians =
     satellite.initialEarthRotationRadians + earthRotationRate * satellite.flightTimeSeconds;
-  const desiredGeoState = computeDesiredGeoState({
+  const desiredState = computeDesiredOrbitState({
     slotLongitude: satellite.slotLongitude,
     earthRotationRadians,
     earthRotationRate,
+    targetRadiusUnits,
+    isGeostationary: true,
   });
-  const positionError = desiredGeoState.position.clone().sub(satellite.position);
-  const velocityError = desiredGeoState.velocity.clone().sub(satellite.velocity);
-  const distanceToTarget = positionError.length();
-  const speedError = velocityError.length();
+
+  const distanceToTarget = desiredState.position.clone().sub(satellite.position).length();
+  const speedError = desiredState.velocity.clone().sub(satellite.velocity).length();
 
   if (!satellite.operational && distanceToTarget < 6) {
     satellite.phase = 'circularize';
-    satellite.stageLabel = SATELLITE_TRANSFER_PHASE.circularize.name;
+    satellite.stageLabel = GEO_TRANSFER_PHASE.circularize.name;
   }
-
-  if (
-    satellite.operational &&
-    (distanceToTarget > 0.9 || speedError > geoCircularVelocityUnits * 0.08)
-  ) {
+  if (satellite.operational && (distanceToTarget > 0.9 || speedError > circularVelocityUnits * 0.08)) {
     satellite.operational = false;
     satellite.phase = 'circularize';
-    satellite.stageLabel = SATELLITE_TRANSFER_PHASE.circularize.name;
+    satellite.stageLabel = GEO_TRANSFER_PHASE.circularize.name;
   }
 
   const phaseProfile = satellite.operational
-    ? SATELLITE_TRANSFER_PHASE.operational
-    : (SATELLITE_TRANSFER_PHASE[satellite.phase] ?? SATELLITE_TRANSFER_PHASE.transfer);
+    ? GEO_TRANSFER_PHASE.operational
+    : (GEO_TRANSFER_PHASE[satellite.phase] ?? GEO_TRANSFER_PHASE.transfer);
 
   integrateStateRK4({
     position: satellite.position,
@@ -404,7 +578,7 @@ function stepSatellite({
       const control = computeSatelliteControlAcceleration({
         position,
         velocity,
-        desiredGeoState,
+        desiredState,
         phaseProfile,
         scaleMeters: simulationConfig.scaleMeters,
       });
@@ -412,26 +586,102 @@ function stepSatellite({
     },
   });
 
-  satellite.flightTimeSeconds += deltaSeconds;
-  satellite.attitudeDirection.copy(
-    computeSatelliteAttitudeDirection({
-      velocity: satellite.velocity,
-      desiredGeoPosition: desiredGeoState.position,
-      currentPosition: satellite.position,
-    }),
-  );
+  enforceMinimumAltitude(satellite.position, satellite.velocity, earthRadiusUnits);
 
-  const settledDistance = satellite.position.distanceTo(desiredGeoState.position);
-  const settledVelocityError = satellite.velocity.distanceTo(desiredGeoState.velocity);
-  if (
-    !satellite.operational &&
-    settledDistance < 0.28 &&
-    settledVelocityError < geoCircularVelocityUnits * 0.035
-  ) {
+  const settledDistance = satellite.position.distanceTo(desiredState.position);
+  const settledVelocityError = satellite.velocity.distanceTo(desiredState.velocity);
+  if (!satellite.operational && settledDistance < 0.28 && settledVelocityError < circularVelocityUnits * 0.035) {
+    satellite.operational = true;
+    satellite.phase = 'operational';
+    satellite.stageLabel = GEO_TRANSFER_PHASE.operational.name;
+  }
+}
+
+function stepNonGeoSatellite({ satellite, deltaSeconds, gravitationalParameter, simulationConfig, targetRadiusUnits, circularVelocityUnits, earthRadiusUnits }) {
+  const scaleMeters = simulationConfig.scaleMeters;
+
+  // Decompose current state into radial and tangential components
+  const radialDir = satellite.position.clone().normalize();
+  const currentRadius = satellite.position.length();
+  const radiusError = targetRadiusUnits - currentRadius;
+  const radialVelocity = satellite.velocity.dot(radialDir);
+
+  // Tangential direction (prograde)
+  const tangentialVel = satellite.velocity.clone().sub(radialDir.clone().multiplyScalar(radialVelocity));
+  const tangentialSpeed = tangentialVel.length();
+  const progradeDir = tangentialSpeed > 1e-12
+    ? tangentialVel.clone().normalize()
+    : fallbackPrograde(radialDir);
+  const speedError = circularVelocityUnits - tangentialSpeed;
+
+  // Phase detection
+  const radiusSettled = Math.abs(radiusError) < 0.12;
+  const speedSettled = Math.abs(speedError) < circularVelocityUnits * 0.025;
+  const radialSettled = Math.abs(radialVelocity) < circularVelocityUnits * 0.015;
+
+  if (!satellite.operational && radiusSettled && speedSettled && radialSettled) {
     satellite.operational = true;
     satellite.phase = 'operational';
     satellite.stageLabel = SATELLITE_TRANSFER_PHASE.operational.name;
   }
+  if (satellite.operational && !(radiusSettled && speedSettled)) {
+    satellite.operational = false;
+    satellite.phase = 'circularize';
+    satellite.stageLabel = SATELLITE_TRANSFER_PHASE.circularize.name;
+  }
+  if (!satellite.operational && satellite.phase === 'transfer' && Math.abs(radiusError) < 1.5) {
+    satellite.phase = 'circularize';
+    satellite.stageLabel = SATELLITE_TRANSFER_PHASE.circularize.name;
+  }
+
+  const phaseProfile = satellite.operational
+    ? SATELLITE_TRANSFER_PHASE.operational
+    : (SATELLITE_TRANSFER_PHASE[satellite.phase] ?? SATELLITE_TRANSFER_PHASE.transfer);
+
+  const maxControlAccel = phaseProfile.maxThrustMetersPerSecondSquared / scaleMeters;
+
+  integrateStateRK4({
+    position: satellite.position,
+    velocity: satellite.velocity,
+    deltaSeconds,
+    accelerationAt(position, velocity) {
+      const gravity = computeCentralBodyAcceleration({
+        position,
+        gravitationalParameter,
+        scaleMeters,
+      });
+
+      const r = position.length();
+      const rDir = position.clone().normalize();
+      const rError = targetRadiusUnits - r;
+      const rVel = velocity.dot(rDir);
+
+      const tVel = velocity.clone().sub(rDir.clone().multiplyScalar(rVel));
+      const tSpeed = tVel.length();
+      const tDir = tSpeed > 1e-12 ? tVel.clone().normalize() : progradeDir.clone();
+      const sError = circularVelocityUnits - tSpeed;
+
+      // PD controller: radial thrust to reach target altitude
+      const radialAccel = rError * phaseProfile.radialGain - rVel * phaseProfile.dampingGain;
+      // P controller: tangential thrust to reach circular velocity
+      const tangentAccel = sError * phaseProfile.tangentialGain;
+
+      const control = rDir.clone().multiplyScalar(radialAccel)
+        .add(tDir.multiplyScalar(tangentAccel));
+
+      return gravity.add(clampVectorMagnitude(control, maxControlAccel));
+    },
+  });
+
+  enforceMinimumAltitude(satellite.position, satellite.velocity, earthRadiusUnits);
+}
+
+function fallbackPrograde(radialDir) {
+  const prograde = new THREE.Vector3().crossVectors(radialDir, new THREE.Vector3(0, 1, 0));
+  if (prograde.lengthSq() < 1e-12) {
+    prograde.crossVectors(radialDir, new THREE.Vector3(1, 0, 0));
+  }
+  return prograde.normalize();
 }
 
 function computeAscentGuidance({
@@ -441,7 +691,8 @@ function computeAscentGuidance({
   launchAzimuth,
   earthRadiusUnits,
   sequenceIndex,
-  desiredGeoPosition,
+  desiredPosition,
+  targetRadiusUnits,
 }) {
   const radial = position.clone().normalize();
 
@@ -484,14 +735,14 @@ function computeAscentGuidance({
   }
 
   if (sequenceIndex === 4) {
-    const toTarget = desiredGeoPosition.clone().sub(position);
+    const toTarget = desiredPosition.clone().sub(position);
     const tangential = toTarget.clone().sub(radial.clone().multiplyScalar(toTarget.dot(radial)));
     const prograde =
       velocity.lengthSq() > 1e-12 ? velocity.clone().normalize() : horizontalDir.clone();
 
     const altitudeUnits = position.length() - earthRadiusUnits;
     const altitudeProgress = THREE.MathUtils.clamp(
-      altitudeUnits / (GEO_RADIUS_UNITS - earthRadiusUnits),
+      altitudeUnits / (targetRadiusUnits - earthRadiusUnits),
       0,
       1,
     );
@@ -532,12 +783,12 @@ function computeHorizontalDirection({ velocity, radial, launchAzimuth }) {
 function computeSatelliteControlAcceleration({
   position,
   velocity,
-  desiredGeoState,
+  desiredState,
   phaseProfile,
   scaleMeters,
 }) {
-  const positionError = desiredGeoState.position.clone().sub(position);
-  const velocityError = desiredGeoState.velocity.clone().sub(velocity);
+  const positionError = desiredState.position.clone().sub(position);
+  const velocityError = desiredState.velocity.clone().sub(velocity);
   const commanded = positionError
     .multiplyScalar(phaseProfile.positionGain)
     .add(velocityError.multiplyScalar(phaseProfile.velocityGain));
@@ -548,22 +799,64 @@ function computeSatelliteControlAcceleration({
   );
 }
 
-function computeSatelliteAttitudeDirection({ velocity, desiredGeoPosition, currentPosition }) {
-  if (velocity.lengthSq() > 1e-12) {
-    return velocity.clone().normalize();
+function computeDesiredOrbitState({
+  slotLongitude,
+  earthRotationRadians,
+  earthRotationRate,
+  targetRadiusUnits,
+  isGeostationary,
+}) {
+  if (isGeostationary) {
+    const localPosition = latLonToVector3({
+      lat: 0,
+      lon: slotLongitude,
+      radius: targetRadiusUnits,
+    });
+    const position = applyEarthRotation(localPosition, earthRotationRadians);
+    const velocity = new THREE.Vector3(0, earthRotationRate, 0).cross(position.clone());
+    return { position, velocity };
   }
-  return desiredGeoPosition.clone().sub(currentPosition).normalize();
-}
 
-function computeDesiredGeoState({ slotLongitude, earthRotationRadians, earthRotationRate }) {
+  // For non-geostationary orbits, compute the desired circular orbit position
+  // The satellite orbits freely — we just guide it to the target altitude and
+  // let it fly a prograde circular orbit at that radius.
   const localPosition = latLonToVector3({
     lat: 0,
     lon: slotLongitude,
-    radius: GEO_RADIUS_UNITS,
+    radius: targetRadiusUnits,
   });
   const position = applyEarthRotation(localPosition, earthRotationRadians);
+
+  // For non-GEO, the desired velocity is orbital velocity at that radius
+  // directed prograde (perpendicular to radial, in the orbital plane)
   const velocity = new THREE.Vector3(0, earthRotationRate, 0).cross(position.clone());
+  // Scale velocity to match circular orbital speed at target radius
+  const orbitalSpeed = Math.sqrt(
+    (6.6743e-11 * 5.972e24) / (targetRadiusUnits * 1e6),
+  ) / 1e6;
+  if (velocity.lengthSq() > 1e-12) {
+    velocity.normalize().multiplyScalar(orbitalSpeed);
+  }
+
   return { position, velocity };
+}
+
+// Prevent any orbiting body from clipping through Earth.
+// If below minimum altitude, project position back to surface and kill radial velocity.
+function enforceMinimumAltitude(position, velocity, earthRadiusUnits) {
+  const minRadius = earthRadiusUnits + 0.05; // ~50km buffer above surface
+  const radius = position.length();
+  if (radius < minRadius) {
+    // Push back to minimum altitude
+    const radialDir = position.clone().normalize();
+    position.copy(radialDir.multiplyScalar(minRadius));
+
+    // Remove inward radial velocity
+    const radialVel = velocity.dot(position.clone().normalize());
+    if (radialVel < 0) {
+      velocity.sub(position.clone().normalize().multiplyScalar(radialVel));
+    }
+  }
 }
 
 function clampVectorMagnitude(vector, maxLength) {

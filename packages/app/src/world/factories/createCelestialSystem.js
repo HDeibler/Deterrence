@@ -3,7 +3,7 @@ import { loadPlanetTextureSet } from '../../rendering/textures/loadPlanetTexture
 import { createFallbackTextureSet } from '../../rendering/textures/createFallbackTextureSet.js';
 import { createEarthSystem } from '../entities/createEarthSystem.js';
 import { createMissile } from '../entities/createMissile.js';
-import { createCarrier, createCruiser } from '../entities/createNavalUnit.js';
+import { createCarrier, createCruiser, createSubmarine } from '../entities/createNavalUnit.js';
 import { latLonToVector3, buildSurfaceFrame } from '../geo/geoMath.js';
 
 export async function createCelestialSystem({
@@ -46,8 +46,12 @@ export async function createCelestialSystem({
   const spentStages = [];
   const missileActors = new Map();
   const navalActors = new Map();
+  // aircraftActors removed — aircraft now rendered via 2D SVG overlay
   const tmpQuaternion = new THREE.Quaternion();
   let navalVisible = true;
+  let airVisible = true;
+  const navalRouteLines = new Map();
+  const airRouteLines = new Map();
   const trajectoryVisibility = {
     actual: true,
     predicted: true,
@@ -61,40 +65,37 @@ export async function createCelestialSystem({
   moon.position.copy(anchors.moon.position);
 
   // ── Ocean detection via earth surface texture sampling ────────────
-  let oceanCanvas = null;
-  let oceanCtx = null;
   let oceanWidth = 0;
   let oceanHeight = 0;
+  let oceanPixels = null;
   try {
     const img = textures.surface?.image;
     if (img) {
-      // Down-sample to 512px wide for fast lookup
-      const scale = Math.min(1, 512 / (img.width || 512));
-      oceanWidth = Math.round((img.width || 512) * scale);
-      oceanHeight = Math.round((img.height || 256) * scale);
-      oceanCanvas = document.createElement('canvas');
-      oceanCanvas.width = oceanWidth;
-      oceanCanvas.height = oceanHeight;
-      oceanCtx = oceanCanvas.getContext('2d', { willReadFrequently: true });
-      oceanCtx.drawImage(img, 0, 0, oceanWidth, oceanHeight);
+      const scale = Math.min(1, 2048 / (img.width || 2048));
+      oceanWidth = Math.round((img.width || 2048) * scale);
+      oceanHeight = Math.round((img.height || 1024) * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = oceanWidth;
+      canvas.height = oceanHeight;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, oceanWidth, oceanHeight);
+      oceanPixels = ctx.getImageData(0, 0, oceanWidth, oceanHeight).data;
     }
   } catch (e) {
     console.warn('Ocean detector: could not read earth texture', e);
   }
 
   function isOcean(lat, lon) {
-    if (!oceanCtx) return true; // If no texture, allow placement anywhere
-    // Equirectangular UV
+    if (!oceanPixels) return true;
     const u = ((lon + 180) % 360) / 360;
     const v = (90 - lat) / 180;
     const px = Math.round(u * (oceanWidth - 1));
     const py = Math.round(v * (oceanHeight - 1));
-    const pixel = oceanCtx.getImageData(px, py, 1, 1).data;
-    const r = pixel[0],
-      g = pixel[1],
-      b = pixel[2];
-    // Water is blue-dominant and dark; land is green/brown/bright
-    return b > r * 1.1 && b > g * 0.9 && r + g + b < 500;
+    const idx = (py * oceanWidth + px) * 4;
+    const r = oceanPixels[idx];
+    const g = oceanPixels[idx + 1];
+    const b = oceanPixels[idx + 2];
+    return b > r + 8 && b > g;
   }
 
   return {
@@ -110,97 +111,88 @@ export async function createCelestialSystem({
       stars,
       moon,
     },
-    updateNavalUnits(snapshots, camera = null) {
+    updateNavalUnits(shipSnapshots, camera = null, altitudeKm = 0) {
       const activeIds = new Set();
-      for (const snapshot of snapshots) {
-        activeIds.add(snapshot.id);
-        let actor = navalActors.get(snapshot.id);
-        if (!actor) {
-          actor = new THREE.Group();
-          // Echelon formation: carrier center, escorts flanking behind
-          const formationSlots = [
-            { x: 0, z: 0 }, // lead (carrier)
-            { x: 0.0015, z: -0.002 }, // starboard escort
-            { x: -0.0015, z: -0.002 }, // port escort
-            { x: 0.003, z: -0.004 }, // far starboard
-            { x: -0.003, z: -0.004 }, // far port
-          ];
-          for (let i = 0; i < snapshot.ships.length; i++) {
-            const ship = snapshot.ships[i];
-            const shipObj =
-              ship.type === 'carrier' ? createCarrier(i).object3d : createCruiser(i).object3d;
-            const slot = formationSlots[i % formationSlots.length];
-            shipObj.position.set(slot.x, 0, slot.z);
-            actor.add(shipObj);
-          }
-          earthSystem.group.add(actor);
-          navalActors.set(snapshot.id, actor);
-          actor.userData.nativeLength = 0.003;
-        }
-        actor.visible = navalVisible;
+      const show3D = navalVisible && altitudeKm < 800;
 
-        const rawPos = latLonToVector3({
-          lat: snapshot.lat,
-          lon: snapshot.lon,
+      for (const ship of shipSnapshots) {
+        activeIds.add(ship.id);
+        let actor = navalActors.get(ship.id);
+
+        if (!actor) {
+          const created =
+            ship.type === 'carrier'
+              ? createCarrier()
+              : ship.type === 'submarine'
+                ? createSubmarine()
+                : createCruiser();
+          actor = {
+            object3d: created.object3d,
+            nativeLength: ship.type === 'carrier' ? 0.003 : ship.type === 'submarine' ? 0.0013 : 0.002,
+          };
+          earthSystem.group.add(actor.object3d);
+          navalActors.set(ship.id, actor);
+        }
+
+        actor.object3d.visible = show3D;
+
+        if (!show3D) {
+          continue;
+        }
+
+        // Position on globe surface (earth-local space)
+        const localPos = latLonToVector3({
+          lat: ship.lat,
+          lon: ship.lon,
           radius: worldConfig.earthRadius,
         });
 
-        // Scale based on distance to camera
-        let radialLift = 0.005;
-        if (camera) {
-          const cameraDistance = camera.position.distanceTo(rawPos);
-          const targetVisualLength = THREE.MathUtils.clamp(cameraDistance * 0.015, 0.03, 0.15);
-          const visualScale = targetVisualLength / actor.userData.nativeLength;
-          actor.scale.setScalar(visualScale);
-          // Generous lift: half the visual length keeps formation above surface
-          radialLift = Math.max(targetVisualLength * 0.15, 0.005);
-        }
+        // Convert to world space for accurate camera distance
+        const worldPos = localPos.clone();
+        earthSystem.group.localToWorld(worldPos);
 
-        // Position on ocean surface with radial lift
-        const up = rawPos.clone().normalize();
-        actor.position.copy(rawPos).addScaledVector(up, radialLift);
+        // Scale: use world-space camera distance for stability
+        const camDist = camera ? camera.position.distanceTo(worldPos) : 20;
+        const targetLen = THREE.MathUtils.clamp(camDist * 0.01, 0.015, 0.10);
+        const visualScale = targetLen / actor.nativeLength;
+        actor.object3d.scale.setScalar(visualScale);
 
-        // Build a proper surface-tangent orientation.
-        // Ship local axes: +Z = forward (bow), +Y = up, +X = starboard.
-        // We need: local Y → surface normal (up), local Z → forward along surface.
+        // Lift ship above surface proportional to its visual size
+        // Generous multiplier + minimum floor to prevent z-fighting and clipping
+        const radialLift = Math.max(targetLen * 0.5, 0.004);
+        const up = localPos.clone().normalize();
+        actor.object3d.position.copy(localPos).addScaledVector(up, radialLift);
+
+        // Orientation: heading → forward direction on tangent plane
+        // Ship models have bow at +Z, up at +Y in local space
         const frame = buildSurfaceFrame(up);
+        const headingRad = (ship.heading ?? 0) * (Math.PI / 180);
+        const forward = frame.north
+          .clone()
+          .multiplyScalar(Math.cos(headingRad))
+          .addScaledVector(frame.east, Math.sin(headingRad))
+          .normalize();
 
-        let forward;
-        if (snapshot.isMoving) {
-          const targetPos = latLonToVector3({
-            lat: snapshot.targetLat,
-            lon: snapshot.targetLon,
-            radius: worldConfig.earthRadius,
-          });
-          const dir = targetPos.clone().sub(rawPos);
-          // Project onto tangent plane (remove radial component)
-          dir.sub(up.clone().multiplyScalar(dir.dot(up)));
-          forward = dir.lengthSq() > 1e-12 ? dir.normalize() : frame.north;
-        } else {
-          forward = frame.north;
-        }
-
-        // Right = forward × up (starboard)
-        const right = new THREE.Vector3().crossVectors(forward, up).normalize();
-        // Re-derive forward to guarantee orthonormality
-        forward.crossVectors(up, right).normalize();
-
-        // Build rotation matrix: columns = [right (X), up (Y), forward (Z)]
-        const rotMatrix = new THREE.Matrix4().makeBasis(right, up, forward);
-        actor.quaternion.setFromRotationMatrix(rotMatrix);
+        // Use Object3D.lookAt to align +Z (bow) with forward, keeping Y roughly along up
+        const lookTarget = actor.object3d.position.clone().add(forward);
+        actor.object3d.up.copy(up);
+        actor.object3d.lookAt(lookTarget);
       }
 
       for (const [id, actor] of navalActors.entries()) {
-        if (activeIds.has(id)) continue;
-        actor.removeFromParent();
+        if (activeIds.has(id)) {
+          continue;
+        }
+        actor.object3d.removeFromParent();
         navalActors.delete(id);
       }
     },
-    updateMissiles(snapshots, deltaSeconds = 0, elapsedSeconds = 0, camera = null) {
+    updateMissiles(snapshots, deltaSeconds = 0, elapsedSeconds = 0, camera = null, playerCountry = null) {
       const activeIds = new Set();
 
       for (const snapshot of snapshots) {
         activeIds.add(snapshot.id);
+        const isEnemy = playerCountry && snapshot.launchSite?.countryIso3 !== playerCountry;
         const actor = ensureMissileActor({
           id: snapshot.id,
           missileActors,
@@ -208,7 +200,23 @@ export async function createCelestialSystem({
           earthGroup: earthSystem.group,
           renderConfig,
           trajectoryVisibility,
+          isEnemy,
         });
+        // Update trail colors if enemy status changed
+        if (actor.isEnemy !== isEnemy) {
+          actor.isEnemy = isEnemy;
+          if (isEnemy) {
+            actor.actualPath.line.material.color.setHex(0xff4444);
+            actor.actualPath.line.material.opacity = 0.6;
+            actor.predictedPath.line.material.color.setHex(0xff4444);
+            actor.predictedPath.line.material.opacity = 0.25;
+          } else {
+            actor.actualPath.line.material.color.setHex(renderConfig.missile.actualPathColor);
+            actor.actualPath.line.material.opacity = renderConfig.missile.actualPathOpacity;
+            actor.predictedPath.line.material.color.setHex(renderConfig.missile.predictedPathColor);
+            actor.predictedPath.line.material.opacity = renderConfig.missile.predictedPathOpacity;
+          }
+        }
         updateMissileActor({
           actor,
           snapshot,
@@ -242,10 +250,276 @@ export async function createCelestialSystem({
       }
       onInvalidate();
     },
+    updateNavalRoutes(routes) {
+      const activeIds = new Set();
+      const lineRadius = worldConfig.earthRadius * 1.002;
+
+      for (const route of routes) {
+        activeIds.add(route.id);
+        let routeLine = navalRouteLines.get(route.id);
+
+        if (!routeLine) {
+          const geometry = new THREE.BufferGeometry();
+          const material = new THREE.LineBasicMaterial({
+            color: route.pending ? 0x62d0ff : 0x6bffd4,
+            transparent: true,
+            opacity: route.pending ? 0.7 : 0.35,
+            depthWrite: false,
+          });
+          const line = new THREE.Line(geometry, material);
+          earthSystem.group.add(line);
+          routeLine = { line, geometry, material };
+          navalRouteLines.set(route.id, routeLine);
+        }
+
+        routeLine.material.color.setHex(route.pending ? 0x62d0ff : 0x6bffd4);
+        routeLine.material.opacity = route.pending ? 0.7 : 0.35;
+
+        // Build path: live unit position → remaining waypoints
+        const allPoints = [];
+        if (route.fleetLat != null && route.fleetLon != null) {
+          allPoints.push(latLonToVector3({ lat: route.fleetLat, lon: route.fleetLon, radius: lineRadius }));
+        }
+        for (const wp of route.waypoints) {
+          allPoints.push(latLonToVector3({ lat: wp.lat, lon: wp.lon, radius: lineRadius }));
+        }
+
+        // Interpolate between points for smooth globe-following arcs
+        const verts = [];
+        for (let i = 0; i < allPoints.length; i++) {
+          verts.push(allPoints[i]);
+          if (i < allPoints.length - 1) {
+            const a = allPoints[i];
+            const b = allPoints[i + 1];
+            const angle = a.angleTo(b);
+            const steps = Math.max(1, Math.ceil(angle / 0.02));
+            for (let s = 1; s < steps; s++) {
+              verts.push(a.clone().lerp(b, s / steps).normalize().multiplyScalar(lineRadius));
+            }
+          }
+        }
+
+        const positions = new Float32Array(verts.length * 3);
+        for (let i = 0; i < verts.length; i++) {
+          positions[i * 3] = verts[i].x;
+          positions[i * 3 + 1] = verts[i].y;
+          positions[i * 3 + 2] = verts[i].z;
+        }
+        const posAttr = routeLine.geometry.getAttribute('position');
+        if (posAttr && posAttr.count >= verts.length) {
+          posAttr.array.set(positions);
+          posAttr.needsUpdate = true;
+          routeLine.geometry.setDrawRange(0, verts.length);
+        } else {
+          const attr = new THREE.BufferAttribute(positions, 3);
+          attr.setUsage(THREE.DynamicDrawUsage);
+          routeLine.geometry.setAttribute('position', attr);
+          routeLine.geometry.setDrawRange(0, verts.length);
+        }
+
+        routeLine.line.visible = navalVisible && verts.length >= 2;
+      }
+
+      for (const [id, routeLine] of navalRouteLines.entries()) {
+        if (activeIds.has(id)) {
+          continue;
+        }
+        routeLine.line.removeFromParent();
+        routeLine.geometry.dispose();
+        routeLine.material.dispose();
+        navalRouteLines.delete(id);
+      }
+    },
+    // Aircraft rendering moved to 2D SVG overlay (createSquadronOverlaySystem)
+    updateAirRoutes(routes) {
+      const LEG_COLORS = [
+        new THREE.Color(0x6ba3ff), new THREE.Color(0xffa94d),
+        new THREE.Color(0x60d394), new THREE.Color(0xe599f7),
+        new THREE.Color(0xffd43b), new THREE.Color(0x74c0fc),
+        new THREE.Color(0xff8787), new THREE.Color(0xb197fc),
+      ];
+      const PENDING_COLOR = new THREE.Color(0x82b4ff);
+      const TANKER_COLORS = {
+        outbound: new THREE.Color(0x60d394),
+        loitering: new THREE.Color(0xffd43b),
+        returning: new THREE.Color(0xff8787),
+      };
+      const TANKER_DEFAULT = new THREE.Color(0x60d394);
+      const lineRadius = worldConfig.earthRadius * 1.004;
+      const activeIds = new Set();
+
+      for (const route of routes) {
+        activeIds.add(route.id);
+        let routeLine = airRouteLines.get(route.id);
+
+        // Build the raw point list: live position + remaining waypoints
+        const rawPoints = [];
+        const rawColors = [];
+
+        // First point = unit's live position
+        if (route.squadronLat != null && route.squadronLon != null) {
+          rawPoints.push({ lat: route.squadronLat, lon: route.squadronLon });
+          const c = route.isTanker ? (TANKER_COLORS[route.tankerPhase] || TANKER_DEFAULT)
+            : route.legIndices ? LEG_COLORS[(route.legIndices[0] || 0) % LEG_COLORS.length]
+            : route.pending ? PENDING_COLOR : LEG_COLORS[0];
+          rawColors.push(c);
+        }
+
+        for (let i = 0; i < route.waypoints.length; i++) {
+          rawPoints.push(route.waypoints[i]);
+          let c;
+          if (route.isTanker) {
+            c = TANKER_COLORS[route.tankerPhase] || TANKER_DEFAULT;
+          } else if (route.legIndices && route.legIndices[i] != null) {
+            c = LEG_COLORS[route.legIndices[i] % LEG_COLORS.length];
+          } else if (route.pending) {
+            c = PENDING_COLOR;
+          } else {
+            c = LEG_COLORS[0];
+          }
+          rawColors.push(c);
+        }
+
+        // Convert to 3D and interpolate for smooth globe-following arcs
+        const verts = [];
+        const vertColors = [];
+        for (let i = 0; i < rawPoints.length; i++) {
+          const a = latLonToVector3({ lat: rawPoints[i].lat, lon: rawPoints[i].lon, radius: lineRadius });
+          verts.push(a);
+          vertColors.push(rawColors[i]);
+          if (i < rawPoints.length - 1) {
+            const b = latLonToVector3({ lat: rawPoints[i + 1].lat, lon: rawPoints[i + 1].lon, radius: lineRadius });
+            const angle = a.angleTo(b);
+            const steps = Math.max(1, Math.ceil(angle / 0.02));
+            for (let s = 1; s < steps; s++) {
+              verts.push(a.clone().lerp(b, s / steps).normalize().multiplyScalar(lineRadius));
+              vertColors.push(rawColors[i]);
+            }
+          }
+        }
+
+        const totalVerts = verts.length;
+        const positions = new Float32Array(totalVerts * 3);
+        const colors = new Float32Array(totalVerts * 3);
+        for (let i = 0; i < totalVerts; i++) {
+          positions[i * 3] = verts[i].x;
+          positions[i * 3 + 1] = verts[i].y;
+          positions[i * 3 + 2] = verts[i].z;
+          colors[i * 3] = vertColors[i].r;
+          colors[i * 3 + 1] = vertColors[i].g;
+          colors[i * 3 + 2] = vertColors[i].b;
+        }
+
+        if (!routeLine) {
+          const geometry = new THREE.BufferGeometry();
+          const material = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.45,
+            depthWrite: false,
+          });
+          const line = new THREE.Line(geometry, material);
+          earthSystem.group.add(line);
+          routeLine = { line, geometry, material, maxVerts: 0 };
+          airRouteLines.set(route.id, routeLine);
+        }
+
+        routeLine.material.opacity = route.pending ? (route.isTanker ? 0.5 : 0.7) : route.isTanker ? 0.3 : 0.45;
+
+        // Reuse buffer if large enough, otherwise allocate new
+        const posAttr = routeLine.geometry.getAttribute('position');
+        if (posAttr && routeLine.maxVerts >= totalVerts) {
+          posAttr.array.set(positions);
+          posAttr.needsUpdate = true;
+          const colAttr = routeLine.geometry.getAttribute('color');
+          colAttr.array.set(colors);
+          colAttr.needsUpdate = true;
+          routeLine.geometry.setDrawRange(0, totalVerts);
+        } else {
+          // Allocate with headroom to reduce reallocations
+          const allocSize = Math.max(totalVerts, 256);
+          routeLine.maxVerts = allocSize;
+          const posBuf = new Float32Array(allocSize * 3);
+          posBuf.set(positions);
+          const pa = new THREE.BufferAttribute(posBuf, 3);
+          pa.setUsage(THREE.DynamicDrawUsage);
+          routeLine.geometry.setAttribute('position', pa);
+          const colBuf = new Float32Array(allocSize * 3);
+          colBuf.set(colors);
+          const ca = new THREE.BufferAttribute(colBuf, 3);
+          ca.setUsage(THREE.DynamicDrawUsage);
+          routeLine.geometry.setAttribute('color', ca);
+          routeLine.geometry.setDrawRange(0, totalVerts);
+        }
+
+        routeLine.line.visible = airVisible && totalVerts >= 2;
+      }
+
+      for (const [id, routeLine] of airRouteLines.entries()) {
+        if (activeIds.has(id)) {
+          continue;
+        }
+        routeLine.line.removeFromParent();
+        routeLine.geometry.dispose();
+        routeLine.material.dispose();
+        airRouteLines.delete(id);
+      }
+    },
+    // pickAirUnit removed — aircraft picking now via 2D overlay
+    setAirVisibility(enabled) {
+      airVisible = Boolean(enabled);
+      for (const routeLine of airRouteLines.values()) {
+        routeLine.line.visible = airVisible;
+      }
+      onInvalidate();
+    },
+    pickNavalUnit(raycaster) {
+      let closestId = null;
+      let closestDist = Infinity;
+
+      for (const [id, actor] of navalActors.entries()) {
+        if (!actor.object3d.visible) {
+          continue;
+        }
+        const intersects = raycaster.intersectObject(actor.object3d, true);
+        if (intersects.length > 0 && intersects[0].distance < closestDist) {
+          closestDist = intersects[0].distance;
+          closestId = id;
+        }
+      }
+
+      return closestId;
+    },
+    pickMissile(raycaster) {
+      let closestId = null;
+      let closestDist = Infinity;
+
+      for (const [id, actor] of missileActors.entries()) {
+        if (!actor.missile.object3d.visible) {
+          continue;
+        }
+        // Use a generous hit sphere — missiles are tiny at orbital distances
+        const pos = actor.missile.object3d.position;
+        const camDist = raycaster.ray.origin.distanceTo(pos);
+        const threshold = Math.max(camDist * 0.02, 0.15);
+        const closest = new THREE.Vector3();
+        raycaster.ray.closestPointToPoint(pos, closest);
+        const dist = closest.distanceTo(pos);
+        if (dist < threshold && camDist < closestDist) {
+          closestDist = camDist;
+          closestId = id;
+        }
+      }
+
+      return closestId;
+    },
     setNavalVisibility(enabled) {
       navalVisible = Boolean(enabled);
       for (const actor of navalActors.values()) {
-        actor.visible = navalVisible;
+        actor.object3d.visible = navalVisible;
+      }
+      for (const routeLine of navalRouteLines.values()) {
+        routeLine.line.visible = navalVisible;
       }
       onInvalidate();
     },
@@ -318,6 +592,7 @@ function ensureMissileActor({
   earthGroup,
   renderConfig,
   trajectoryVisibility,
+  isEnemy,
 }) {
   let actor = missileActors.get(id);
   if (actor) {
@@ -326,17 +601,23 @@ function ensureMissileActor({
 
   const missile = createMissile();
   scene.add(missile.object3d);
+
+  const pathColor = isEnemy ? 0xff4444 : renderConfig.missile.actualPathColor;
+  const pathOpacity = isEnemy ? 0.6 : renderConfig.missile.actualPathOpacity;
+  const predColor = isEnemy ? 0xff4444 : renderConfig.missile.predictedPathColor;
+  const predOpacity = isEnemy ? 0.25 : renderConfig.missile.predictedPathOpacity;
+
   const actualPath = createTrajectoryLine({
     parent: earthGroup,
     maxPoints: renderConfig.trail.points,
-    color: renderConfig.missile.actualPathColor,
-    opacity: renderConfig.missile.actualPathOpacity,
+    color: pathColor,
+    opacity: pathOpacity,
   });
   const predictedPath = createTrajectoryLine({
     parent: earthGroup,
     maxPoints: renderConfig.trail.points,
-    color: renderConfig.missile.predictedPathColor,
-    opacity: renderConfig.missile.predictedPathOpacity,
+    color: predColor,
+    opacity: predOpacity,
   });
   actualPath.line.visible = trajectoryVisibility.actual;
   predictedPath.line.visible = trajectoryVisibility.predicted;
@@ -345,6 +626,7 @@ function ensureMissileActor({
     missile,
     actualPath,
     predictedPath,
+    isEnemy: !!isEnemy,
     previousStageIndex: null,
     previousPhase: 'idle',
   };

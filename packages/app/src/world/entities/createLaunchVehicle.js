@@ -1,10 +1,15 @@
 import * as THREE from 'three';
 
+// Unified launch vehicle asset — one continuous object that transforms through
+// all mission phases: full stack → stage sep → fairing sep → payload deploy.
+// No popping between discrete meshes.
+
 export function createLaunchVehicle() {
   const root = new THREE.Group();
   const stack = new THREE.Group();
   root.add(stack);
 
+  // ── Materials ──────────────────────────────────────────────────────────
   const whiteMaterial = new THREE.MeshStandardMaterial({
     color: 0xf0f2f5,
     roughness: 0.38,
@@ -30,42 +35,187 @@ export function createLaunchVehicle() {
     roughness: 0.42,
     metalness: 0.18,
   });
+  const goldFoilMaterial = new THREE.MeshStandardMaterial({
+    color: 0xd4a843,
+    roughness: 0.25,
+    metalness: 0.75,
+  });
+  const solarCellMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a3a6e,
+    roughness: 0.35,
+    metalness: 0.25,
+  });
+  const sensorMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a1a2a,
+    roughness: 0.15,
+    metalness: 0.80,
+  });
 
-  const parts = {
-    firstStage: buildFirstStage({ whiteMaterial, darkMaterial, metalMaterial, accentMaterial }),
-    secondStage: buildSecondStage({ whiteMaterial, darkMaterial, metalMaterial }),
-    fairing: buildPayloadFairing({ fairingMaterial, darkMaterial, metalMaterial }),
-  };
+  // ── Build all components ───────────────────────────────────────────────
+  // Each separating part gets cloned materials so fading one doesn't affect others
+  const firstStage = buildFirstStage({
+    whiteMaterial: whiteMaterial.clone(),
+    darkMaterial: darkMaterial.clone(),
+    metalMaterial: metalMaterial.clone(),
+    accentMaterial: accentMaterial.clone(),
+  });
+  const secondStage = buildSecondStage({ whiteMaterial, darkMaterial, metalMaterial });
+  const fairingHalves = buildSplitFairing({
+    fairingMaterial: fairingMaterial.clone(),
+    darkMaterial: darkMaterial.clone(),
+    metalMaterial: metalMaterial.clone(),
+  });
+  const payload = buildPayloadSatellite({ goldFoilMaterial, solarCellMaterial, sensorMaterial, metalMaterial, darkMaterial });
 
-  const layout = layoutRocketStack(parts);
+  // ── Layout the stack (cursor walks bottom→top, centered at y=0) ──────
+  const totalLength = firstStage.length + secondStage.length + fairingHalves.length;
+  let cursor = -totalLength * 0.5;
 
-  stack.add(parts.firstStage.group, parts.secondStage.group, parts.fairing.group);
+  // First stage
+  const firstStageCenterY = cursor + firstStage.length * 0.5;
+  firstStage.group.position.y = firstStageCenterY;
+  firstStage.nozzleAnchor.add(new THREE.Vector3(0, firstStageCenterY, 0));
+  cursor += firstStage.length;
 
+  // Second stage
+  const secondStageCenterY = cursor + secondStage.length * 0.5;
+  secondStage.group.position.y = secondStageCenterY;
+  secondStage.nozzleAnchor.add(new THREE.Vector3(0, secondStageCenterY, 0));
+  cursor += secondStage.length;
+
+  // Fairing halves (both at same position — they split sideways)
+  const fairingCenterY = cursor + fairingHalves.length * 0.5;
+  const fairingBaseY = fairingCenterY; // save for animation reference
+  fairingHalves.leftHalf.position.y = fairingCenterY;
+  fairingHalves.rightHalf.position.y = fairingCenterY;
+
+  // Payload sits inside the fairing, centered vertically
+  payload.group.position.y = cursor + fairingHalves.length * 0.35;
+
+  stack.add(firstStage.group);
+  stack.add(secondStage.group);
+  stack.add(fairingHalves.leftHalf);
+  stack.add(fairingHalves.rightHalf);
+  stack.add(payload.group);
+
+  // Payload hidden inside fairing initially
+  payload.group.visible = false;
+
+  // ── Plume & halo ───────────────────────────────────────────────────────
   const plume = createRocketPlume();
   stack.add(plume.group);
   const halo = createRocketHalo();
   root.add(halo);
   root.visible = false;
 
+  // ── Animation state ────────────────────────────────────────────────────
+  let stageSepProgress = 0;   // 0=attached, 1=fully separated
+  let fairingSepProgress = 0; // 0=closed, 1=fully open and drifting away
+  let payloadDeployProgress = 0; // 0=stowed, 1=fully deployed
+
   return {
     object3d: root,
     forwardAxis: new THREE.Vector3(0, 1, 0),
-    nativeLength: layout.totalLength,
+    nativeLength: totalLength,
     setVisualState(snapshot, elapsedSeconds = 0) {
       const stageIndex = snapshot?.stageIndex ?? 0;
       const engineOn = snapshot?.engineOn ?? false;
       const visible = snapshot?.visible ?? false;
+      const fairingSeparated = snapshot?.fairingSeparated ?? false;
+      const sequenceIndex = snapshot?.sequenceIndex ?? 0;
+      const flightTimeSeconds = snapshot?.flightTimeSeconds ?? 0;
 
       root.visible = visible;
-      parts.firstStage.group.visible = stageIndex === 0;
-      parts.secondStage.group.visible = true;
-      parts.fairing.group.visible = stageIndex < 2;
+      secondStage.group.visible = true;
 
+      // ── Stage separation animation ─────────────────────────────────
+      if (stageIndex >= 1 && stageSepProgress < 1) {
+        stageSepProgress = Math.min(1, stageSepProgress + 0.02);
+      }
+
+      if (stageSepProgress > 0) {
+        // First stage drifts away from its original position and fades
+        const sepDistance = easeOutCubic(stageSepProgress) * firstStage.length * 1.8;
+        firstStage.group.position.y = firstStageCenterY - sepDistance;
+        firstStage.group.visible = stageSepProgress < 0.95;
+        if (stageSepProgress > 0.6) {
+          const fadeAlpha = 1 - (stageSepProgress - 0.6) / 0.4;
+          setGroupOpacity(firstStage.group, fadeAlpha);
+        }
+      } else {
+        firstStage.group.position.y = firstStageCenterY;
+        firstStage.group.visible = true;
+        setGroupOpacity(firstStage.group, 1);
+      }
+
+      // ── Fairing separation animation ───────────────────────────────
+      if (fairingSeparated && fairingSepProgress < 1) {
+        fairingSepProgress = Math.min(1, fairingSepProgress + 0.012);
+      }
+
+      if (fairingSepProgress > 0) {
+        const t = easeOutCubic(fairingSepProgress);
+
+        // Halves hinge open then drift outward
+        const hingeAngle = Math.min(t * 2, 1) * Math.PI * 0.55;
+        const driftX = Math.max(0, t - 0.3) * fairingHalves.radius * 6;
+        const driftY = Math.max(0, t - 0.3) * fairingHalves.length * 0.8;
+
+        fairingHalves.leftHalf.rotation.z = hingeAngle;
+        fairingHalves.leftHalf.position.x = -driftX;
+        fairingHalves.leftHalf.position.y = fairingBaseY - driftY;
+
+        fairingHalves.rightHalf.rotation.z = -hingeAngle;
+        fairingHalves.rightHalf.position.x = driftX;
+        fairingHalves.rightHalf.position.y = fairingBaseY - driftY;
+
+        // Fade out the fairing halves
+        if (fairingSepProgress > 0.5) {
+          const fadeAlpha = 1 - (fairingSepProgress - 0.5) / 0.5;
+          setGroupOpacity(fairingHalves.leftHalf, fadeAlpha);
+          setGroupOpacity(fairingHalves.rightHalf, fadeAlpha);
+        }
+
+        fairingHalves.leftHalf.visible = fairingSepProgress < 0.92;
+        fairingHalves.rightHalf.visible = fairingSepProgress < 0.92;
+
+        // Reveal payload as fairing opens
+        payload.group.visible = true;
+        const payloadRevealT = Math.min(fairingSepProgress * 2.5, 1);
+        setGroupOpacity(payload.group, payloadRevealT);
+      } else {
+        fairingHalves.leftHalf.position.y = fairingBaseY;
+        fairingHalves.rightHalf.position.y = fairingBaseY;
+        fairingHalves.leftHalf.visible = true;
+        fairingHalves.rightHalf.visible = true;
+        setGroupOpacity(fairingHalves.leftHalf, 1);
+        setGroupOpacity(fairingHalves.rightHalf, 1);
+        payload.group.visible = false;
+      }
+
+      // ── Payload deploy (solar panel unfold) ────────────────────────
+      if (sequenceIndex >= 3 && fairingSepProgress >= 0.8) {
+        payloadDeployProgress = Math.min(1, payloadDeployProgress + 0.008);
+      }
+
+      if (payloadDeployProgress > 0) {
+        // Solar panels unfold
+        const foldAngle = (1 - easeOutCubic(payloadDeployProgress)) * Math.PI * 0.48;
+        payload.leftWing.rotation.y = -foldAngle;
+        payload.rightWing.rotation.y = foldAngle;
+
+        // Wings extend outward from body
+        const extendX = easeOutCubic(payloadDeployProgress) * payload.wingOffset;
+        payload.leftWing.position.x = -payload.busHalfLength - payload.yokeLength + payload.wingOffset - extendX;
+        payload.rightWing.position.x = payload.busHalfLength + payload.yokeLength - payload.wingOffset + extendX;
+      }
+
+      // ── Plume ──────────────────────────────────────────────────────
       plume.group.visible = engineOn;
       halo.visible = visible && engineOn;
 
       if (engineOn) {
-        const activeNozzle = stageIndex === 0 ? parts.firstStage : parts.secondStage;
+        const activeNozzle = stageIndex === 0 ? firstStage : secondStage;
         plume.group.position.copy(activeNozzle.nozzleAnchor);
 
         const flicker =
@@ -83,7 +233,7 @@ export function createLaunchVehicle() {
   };
 }
 
-// ─── First Stage: Large cylindrical booster ─────────────────────────────────
+// ─── First Stage ─────────────────────────────────────────────────────────────
 
 function buildFirstStage({ whiteMaterial, darkMaterial, metalMaterial, accentMaterial }) {
   const length = 0.000038;
@@ -159,7 +309,7 @@ function buildFirstStage({ whiteMaterial, darkMaterial, metalMaterial, accentMat
   };
 }
 
-// ─── Second Stage: Slimmer upper stage ──────────────────────────────────────
+// ─── Second Stage ────────────────────────────────────────────────────────────
 
 function buildSecondStage({ whiteMaterial, darkMaterial, metalMaterial }) {
   const length = 0.000022;
@@ -209,20 +359,41 @@ function buildSecondStage({ whiteMaterial, darkMaterial, metalMaterial }) {
   };
 }
 
-// ─── Payload Fairing: Ogive nose cone ───────────────────────────────────────
+// ─── Split Fairing (two halves that hinge open) ──────────────────────────────
 
-function buildPayloadFairing({ fairingMaterial, darkMaterial, metalMaterial }) {
+function buildSplitFairing({ fairingMaterial, darkMaterial, metalMaterial }) {
   const bodyLength = 0.000018;
   const noseLength = 0.000014;
   const radius = 0.0000042;
+  const totalLength = bodyLength + noseLength;
+
+  const leftHalf = buildFairingHalf({ fairingMaterial, darkMaterial, metalMaterial, bodyLength, noseLength, radius, side: 1 });
+  const rightHalf = buildFairingHalf({ fairingMaterial, darkMaterial, metalMaterial, bodyLength, noseLength, radius, side: -1 });
+
+  return {
+    leftHalf,
+    rightHalf,
+    length: totalLength,
+    radius,
+  };
+}
+
+function buildFairingHalf({ fairingMaterial, darkMaterial, metalMaterial, bodyLength, noseLength, radius, side }) {
   const group = new THREE.Group();
+  // Offset so the visual center of the full fairing (body + nose) sits at y=0
+  const centerOffset = -noseLength * 0.5;
 
-  const cylinderSection = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, bodyLength, 24, 2, false),
-    fairingMaterial,
+  // Cylindrical section — half cylinder
+  const cylinderGeo = new THREE.CylinderGeometry(
+    radius, radius, bodyLength, 24, 2, false,
+    side > 0 ? 0 : Math.PI,
+    Math.PI,
   );
-  group.add(cylinderSection);
+  const cylinder = new THREE.Mesh(cylinderGeo, fairingMaterial);
+  cylinder.position.y = centerOffset;
+  group.add(cylinder);
 
+  // Nose cone — half ogive
   const ogivePoints = [];
   const ogiveSegments = 18;
   for (let i = 0; i <= ogiveSegments; i += 1) {
@@ -231,55 +402,117 @@ function buildPayloadFairing({ fairingMaterial, darkMaterial, metalMaterial }) {
     const r = radius * Math.sqrt(1 - t * t * 0.92);
     ogivePoints.push(new THREE.Vector2(r, y));
   }
-  const ogiveGeometry = new THREE.LatheGeometry(ogivePoints, 24);
+  const ogiveGeometry = new THREE.LatheGeometry(
+    ogivePoints, 12,
+    side > 0 ? 0 : Math.PI,
+    Math.PI,
+  );
   const noseCone = new THREE.Mesh(ogiveGeometry, fairingMaterial);
-  noseCone.position.y = bodyLength * 0.5;
+  noseCone.position.y = bodyLength * 0.5 + centerOffset;
   group.add(noseCone);
 
-  const seamLine1 = new THREE.Mesh(
+  // Seam line along the split edge
+  const seamLine = new THREE.Mesh(
     new THREE.BoxGeometry(0.0000004, bodyLength + noseLength * 0.6, radius * 0.06),
     darkMaterial,
   );
-  seamLine1.position.y = noseLength * 0.15;
-  seamLine1.position.z = radius * 0.02;
-  group.add(seamLine1);
+  seamLine.position.y = noseLength * 0.15 + centerOffset;
+  seamLine.position.z = side > 0 ? radius * 0.01 : -radius * 0.01;
+  group.add(seamLine);
 
-  const seamLine2 = seamLine1.clone();
-  seamLine2.position.z = -radius * 0.02;
-  seamLine2.rotation.y = Math.PI;
-  group.add(seamLine2);
-
-  const baseRing = createBand(radius * 1.03, 0.0000008, metalMaterial);
-  baseRing.position.y = -bodyLength * 0.5;
+  // Base ring (half)
+  const baseRing = new THREE.Mesh(
+    new THREE.TorusGeometry(radius * 1.03, 0.0000004, 6, 12, Math.PI),
+    metalMaterial,
+  );
+  baseRing.position.y = -bodyLength * 0.5 + centerOffset;
+  baseRing.rotation.x = Math.PI * 0.5;
+  if (side < 0) baseRing.rotation.y = Math.PI;
   group.add(baseRing);
+
+  return group;
+}
+
+// ─── Payload Satellite (small version stowed in fairing) ─────────────────────
+
+function buildPayloadSatellite({ goldFoilMaterial, solarCellMaterial, sensorMaterial, metalMaterial, darkMaterial }) {
+  const group = new THREE.Group();
+
+  // Miniature bus wrapped in gold foil
+  const busWidth = 0.0000028;
+  const busHeight = 0.0000022;
+  const busDepth = 0.0000024;
+  const bus = new THREE.Mesh(
+    new THREE.BoxGeometry(busWidth, busHeight, busDepth),
+    goldFoilMaterial,
+  );
+  group.add(bus);
+
+  // Sensor boom pointing nadir
+  const sensorBoom = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.0000003, 0.0000004, 0.0000012, 6),
+    metalMaterial,
+  );
+  sensorBoom.position.y = -busHeight * 0.5 - 0.0000006;
+  group.add(sensorBoom);
+
+  // Sensor lens
+  const sensorLens = new THREE.Mesh(
+    new THREE.CircleGeometry(0.0000005, 8),
+    sensorMaterial,
+  );
+  sensorLens.position.y = -busHeight * 0.5 - 0.0000012;
+  sensorLens.rotation.x = Math.PI * 0.5;
+  group.add(sensorLens);
+
+  // Folded solar panels (compact)
+  const panelW = 0.0000018;
+  const panelH = 0.0000028;
+  const yokeLength = 0.0000006;
+  const busHalfLength = busWidth * 0.5;
+  const wingOffset = panelW * 0.5;
+
+  const leftWing = new THREE.Group();
+  const leftPanel = new THREE.Mesh(
+    new THREE.BoxGeometry(panelW, 0.0000002, panelH),
+    solarCellMaterial,
+  );
+  leftWing.add(leftPanel);
+  leftWing.position.set(-busHalfLength - yokeLength, 0, 0);
+  // Start folded
+  leftWing.rotation.y = -Math.PI * 0.48;
+  group.add(leftWing);
+
+  const rightWing = new THREE.Group();
+  const rightPanel = new THREE.Mesh(
+    new THREE.BoxGeometry(panelW, 0.0000002, panelH),
+    solarCellMaterial,
+  );
+  rightWing.add(rightPanel);
+  rightWing.position.set(busHalfLength + yokeLength, 0, 0);
+  rightWing.rotation.y = Math.PI * 0.48;
+  group.add(rightWing);
+
+  // Antenna dish
+  const dish = new THREE.Mesh(
+    new THREE.SphereGeometry(0.0000006, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.4),
+    metalMaterial,
+  );
+  dish.rotation.x = Math.PI;
+  dish.position.y = busHeight * 0.5 + 0.0000003;
+  group.add(dish);
 
   return {
     group,
-    length: bodyLength + noseLength,
+    leftWing,
+    rightWing,
+    busHalfLength,
+    yokeLength,
+    wingOffset,
   };
 }
 
-// ─── Stack layout ───────────────────────────────────────────────────────────
-
-function layoutRocketStack(parts) {
-  const ordered = ['firstStage', 'secondStage', 'fairing'];
-  const totalLength = ordered.reduce((sum, key) => sum + parts[key].length, 0);
-  let cursor = -totalLength * 0.5;
-
-  for (const key of ordered) {
-    const part = parts[key];
-    const centerY = cursor + part.length * 0.5;
-    part.group.position.y = centerY;
-    if (part.nozzleAnchor) {
-      part.nozzleAnchor = part.nozzleAnchor.clone().add(new THREE.Vector3(0, centerY, 0));
-    }
-    cursor += part.length;
-  }
-
-  return { totalLength };
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function createBand(radius, height, material) {
   return new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 22, 1, false), material);
@@ -338,4 +571,19 @@ function createRocketHalo() {
       depthWrite: false,
     }),
   );
+}
+
+function setGroupOpacity(group, opacity) {
+  group.traverse((child) => {
+    if (child.isMesh && child.material) {
+      if (!child.material.transparent) {
+        child.material.transparent = true;
+      }
+      child.material.opacity = opacity;
+    }
+  });
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
 }
