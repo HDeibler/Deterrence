@@ -70,8 +70,13 @@ export async function createApplication({
   });
   const chrome = createChromeController({ document });
   const environment = createSpaceEnvironment({ scene: sceneContext.scene, renderConfig });
-  const navalSimulation = createNavalSimulation();
-  const airSimulation = createAirSimulation();
+  const oilSimulation = createOilSimulation();
+  const navalSimulation = createNavalSimulation({
+    onConsumeFuel: (barrels) => oilSimulation.consumeMilitaryFuel(activeCountryIso3, barrels),
+  });
+  const airSimulation = createAirSimulation({
+    onConsumeFuel: (barrels) => oilSimulation.consumeMilitaryFuel(activeCountryIso3, barrels),
+  });
   airSimulation.setCarrierPositionResolver((fleetId) => {
     const fleet = navalSimulation.getFleets().find((f) => f.id === fleetId);
     return fleet ? { lat: fleet.lat, lon: fleet.lon } : null;
@@ -312,7 +317,6 @@ export async function createApplication({
     worldConfig,
     getEarthRotationRadians: () => celestialSystem.getEarthRotationRadians(),
   });
-  const oilSimulation = createOilSimulation();
   missileOverlay.setOilSimulation(oilSimulation);
   const tradeSimulation = createTradeSimulation({
     oilSimulation,
@@ -528,6 +532,14 @@ export async function createApplication({
           ? Math.round((s.nationalReserves / s.nationalCapacity) * 100) : 0;
         resourceOilRate.textContent = `SPR ${sprPct}%`;
         resourceOilBar.style.width = `${sprPct}%`;
+
+        // Warn when military fuel drops below 20%
+        if (milPct > 0 && milPct < 20) {
+          notifications.warn(
+            `Military fuel critically low (${milPct}%) — operations may halt`,
+            'fuel-low',
+          );
+        }
       }
     } else if (resourcePanel) {
       resourcePanel.hidden = true;
@@ -1763,25 +1775,31 @@ export async function createApplication({
         if (freshPlan.viable) {
           routePlan = freshPlan;
         }
-        airSimulation.launchMission({
+        const carrierResult = airSimulation.launchMission({
           homeLat: fleet.lat,
           homeLon: fleet.lon,
           aircraft: pendingAircraft,
           routePlan,
           carrierFleetId: pendingAirHomeBase.carrierFleetId,
         });
+        if (carrierResult && carrierResult.failed) {
+          notifications.error('Mission aborted — insufficient military fuel', 'fuel-launch');
+        }
         closeAllPopups();
         requestRender();
         return;
       }
     }
 
-    airSimulation.launchMission({
+    const launchResult = airSimulation.launchMission({
       homeLat: pendingAirHomeBase.latitude,
       homeLon: pendingAirHomeBase.longitude,
       aircraft: pendingAircraft,
       routePlan,
     });
+    if (launchResult && launchResult.failed) {
+      notifications.error('Mission aborted — insufficient military fuel', 'fuel-launch');
+    }
     closeAllPopups();
     requestRender();
   }

@@ -26,8 +26,9 @@ const FLEET_NAMES = [
 let _nextFleetId = 1;
 let _nextShipId = 1;
 
-export function createNavalSimulation() {
+export function createNavalSimulation({ onConsumeFuel } = {}) {
   const fleets = [];
+  const _consumeFuel = onConsumeFuel || (() => true);
 
   return {
     createFleet({ lat, lon, ships, name, speedKnots = 30 }) {
@@ -77,6 +78,18 @@ export function createNavalSimulation() {
     step(deltaSeconds) {
       for (const fleet of fleets) {
         if (!fleet.isMoving || fleet.waypoints.length === 0) {
+          continue;
+        }
+
+        // Consume fuel: 500 barrels per active ship per day
+        let activeShips = 0;
+        for (let i = 0; i < fleet.ships.length; i++) {
+          if (!fleet.ships[i].sunk) activeShips++;
+        }
+        const fuelPerTick = activeShips * 500 * (deltaSeconds / 86400);
+        if (!_consumeFuel(fuelPerTick)) {
+          fleet.isMoving = false;
+          fleet.outOfFuel = true;
           continue;
         }
 

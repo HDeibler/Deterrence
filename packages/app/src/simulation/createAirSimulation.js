@@ -179,11 +179,12 @@ export function filterAlliedBases(allBases, playerCountry) {
   return allBases.filter((b) => allies.has(b.countryIso3));
 }
 
-export function createAirSimulation() {
+export function createAirSimulation({ onConsumeFuel } = {}) {
   const activeMissions = [];
   const landedSquadrons = [];
   let _carrierPositionResolver = null;
   let _eventHandler = null; // (type, data) => void
+  const _consumeFuel = onConsumeFuel || (() => true);
 
   return {
     setCarrierPositionResolver(resolver) {
@@ -367,6 +368,11 @@ export function createAirSimulation() {
 
     // ── Launch a planned mission ─────────────────────────────────
     launchMission({ homeLat, homeLon, aircraft, routePlan, name, carrierFleetId }) {
+      // Consume 10,000 barrels per sortie from national fuel pool
+      if (!_consumeFuel(10000)) {
+        return { failed: true, reason: 'outOfFuel' };
+      }
+
       const num = _nextMissionId++;
       const missionId = `mission_${num}`;
       const missionName = name || SQUADRON_NAMES[(num - 1) % SQUADRON_NAMES.length];
