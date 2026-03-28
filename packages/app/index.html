@@ -34,6 +34,14 @@
             <kbd>6</kbd>
             <span id="viewDefenseLabel" class="sr-only">Defense On</span>
           </button>
+          <button id="viewEconomyToggle" class="view-chip" type="button">
+            <kbd>7</kbd>
+            <span id="viewEconomyLabel" class="sr-only">Economy Off</span>
+          </button>
+          <button id="viewTradeToggle" class="view-chip" type="button">
+            <kbd>8</kbd>
+            <span id="viewTradeLabel" class="sr-only">Trade Off</span>
+          </button>
         </div>
       </div>
 
@@ -52,6 +60,35 @@
               <kbd>Tab</kbd>
               <span id="siteFilterToggleLabel">All Sites</span>
             </button>
+            <div id="missileTypeSelector" class="missile-type-selector" aria-label="Missile type">
+              <button class="missile-type-btn selected" type="button" data-type="icbm">
+                <span class="missile-type-name">ICBM</span>
+                <span class="missile-type-sub">Ballistic</span>
+              </button>
+              <button class="missile-type-btn" type="button" data-type="cruise_subsonic">
+                <span class="missile-type-name">LACM</span>
+                <span class="missile-type-sub">Cruise</span>
+              </button>
+              <button class="missile-type-btn" type="button" data-type="cruise_supersonic">
+                <span class="missile-type-name">ASCM</span>
+                <span class="missile-type-sub">Mach 2.8</span>
+              </button>
+              <button class="missile-type-btn" type="button" data-type="hypersonic_glide">
+                <span class="missile-type-name">HGV</span>
+                <span class="missile-type-sub">Mach 20</span>
+              </button>
+              <button class="missile-type-btn" type="button" data-type="hypersonic_cruise">
+                <span class="missile-type-name">HCM</span>
+                <span class="missile-type-sub">Mach 6</span>
+              </button>
+            </div>
+            <div id="warheadSelector" class="warhead-selector" aria-label="Warhead type">
+              <span id="warheadSelectorLabel" class="warhead-selector-label">W87 Thermonuclear</span>
+              <button id="warheadCycleBtn" class="control-button warhead-cycle" type="button">
+                <kbd>W</kbd>
+                <span>Cycle Warhead</span>
+              </button>
+            </div>
             <div id="warheadCountChip" class="control-stepper" aria-label="Warhead count">
               <button id="warheadDecreaseButton" class="control-stepper-button" type="button">
                 -
@@ -105,6 +142,21 @@
           </div>
         </details>
 
+        <details class="control-section" id="petroleumSection">
+          <summary>
+            <span>Petroleum</span>
+            <small id="petroleumSummaryLabel"></small>
+          </summary>
+          <div class="control-body">
+            <button id="placeReserveBtn" class="control-button" type="button">
+              <span>Place Strategic Reserve</span>
+            </button>
+            <button id="placePortBtn" class="control-button" type="button">
+              <span>Place Oil Port</span>
+            </button>
+          </div>
+        </details>
+
         <div class="control-footer">
           <button id="settingsToggle" class="control-button" type="button" hidden>
             <kbd>Esc</kbd>
@@ -139,6 +191,58 @@
         <div id="gameClockTime" class="game-clock-time">06:00:00Z</div>
         <div id="gameClockDate" class="game-clock-date">DAY 1 &mdash; 15 MAR 2026</div>
       </div>
+
+      <div id="resourcePanel" class="resource-panel" hidden>
+        <div class="resource-row">
+          <img src="/assets/manufactoring/raw-resources/oil-reserve.svg" class="resource-icon" alt="Military Fuel">
+          <div class="resource-info">
+            <span class="resource-value" id="resourceMilFuel">0</span>
+            <span class="resource-sub" id="resourceMilRate">+0 bpd</span>
+          </div>
+          <div class="resource-bar-track">
+            <div class="resource-bar-fill resource-bar-military" id="resourceMilBar" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="resource-row">
+          <img src="/assets/manufactoring/raw-resources/oil-producer.svg" class="resource-icon" alt="National Oil">
+          <div class="resource-info">
+            <span class="resource-value" id="resourceOilReserves">0</span>
+            <span class="resource-sub" id="resourceOilRate">SPR</span>
+          </div>
+          <div class="resource-bar-track">
+            <div class="resource-bar-fill resource-bar-oil" id="resourceOilBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <section id="damageReport" class="damage-report" hidden>
+        <div class="damage-report-header">
+          <span class="damage-report-type">IMPACT REPORT</span>
+          <span id="damageReportTitle" class="damage-report-title"></span>
+          <button id="damageReportClose" class="damage-report-close" type="button">&times;</button>
+        </div>
+        <div class="damage-report-body">
+          <div class="damage-report-summary">
+            <div class="damage-metric damage-metric-fatal">
+              <span class="label">Fatalities</span>
+              <strong id="damageReportFatalities">0</strong>
+            </div>
+            <div class="damage-metric damage-metric-injured">
+              <span class="label">Injured</span>
+              <strong id="damageReportInjured">0</strong>
+            </div>
+            <div class="damage-metric">
+              <span class="label">Yield</span>
+              <strong id="damageReportYield">-</strong>
+            </div>
+            <div class="damage-metric">
+              <span class="label">Warhead</span>
+              <strong id="damageReportWarhead">-</strong>
+            </div>
+          </div>
+          <div id="damageReportCities" class="damage-report-cities"></div>
+        </div>
+      </section>
 
       <div id="sceneRoot" class="scene-root" aria-label="3D Earth simulation"></div>
 

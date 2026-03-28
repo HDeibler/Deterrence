@@ -279,11 +279,11 @@ body::before {
 }
 
 .view-card {
-  top: 18px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 8px;
-  border-radius: 16px;
+  padding: 5px;
+  border-radius: 12px;
 }
 
 .game-clock {
@@ -300,6 +300,79 @@ body::before {
   user-select: none;
   pointer-events: none;
   min-width: 170px;
+}
+
+.resource-panel {
+  position: absolute;
+  top: 18px;
+  left: 210px;
+  z-index: 8;
+  padding: 8px 12px;
+  border-radius: 12px;
+  backdrop-filter: blur(18px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
+  user-select: none;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.resource-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.resource-icon {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+  opacity: 0.85;
+}
+
+.resource-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 80px;
+}
+
+.resource-value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.resource-sub {
+  font-size: 0.62rem;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.resource-bar-track {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.resource-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.resource-bar-military {
+  background: linear-gradient(90deg, #64b4ff, #7de4ff);
+}
+
+.resource-bar-oil {
+  background: linear-gradient(90deg, #64d2a0, #ffb347);
 }
 
 .game-clock-label {
@@ -337,9 +410,8 @@ body::before {
 }
 
 .view-strip {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  gap: 4px;
 }
 
 .view-chip,
@@ -378,10 +450,10 @@ body::before {
 .view-chip {
   position: relative;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 32px;
+  min-height: 32px;
   padding: 0;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .view-chip span {
@@ -482,6 +554,69 @@ body::before {
   display: grid;
   gap: 10px;
   padding: 0 12px 12px;
+}
+
+/* ── Missile type selector ────────────────────────────────────────── */
+
+.missile-type-selector {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.missile-type-btn {
+  flex: 1;
+  min-width: 52px;
+  padding: 6px 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(7, 16, 31, 0.6);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.missile-type-btn:hover {
+  border-color: rgba(181, 220, 255, 0.35);
+  color: var(--text);
+}
+
+.missile-type-btn.selected {
+  border-color: var(--silo);
+  color: var(--text);
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.missile-type-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.missile-type-sub {
+  font-size: 0.58rem;
+  opacity: 0.65;
+}
+
+.warhead-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warhead-selector-label {
+  flex: 1;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.warhead-cycle {
+  font-size: 0.68rem;
 }
 
 /* ── Radar mode list ─────────────────────────────────────────────── */
@@ -602,7 +737,7 @@ body::before {
   padding: 0;
   background: transparent;
   border: 0;
-  font-size: 0.96rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
@@ -1293,7 +1428,7 @@ canvas {
   }
 
   .view-strip {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    flex-wrap: wrap;
   }
 
   .view-chip::after {
@@ -1458,6 +1593,148 @@ canvas {
   font-weight: 700;
   line-height: 20px;
   text-align: center;
+}
+
+/* ── Damage Report Panel ──────────────────────────────────────────────── */
+
+.damage-report {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  min-width: 340px;
+  max-width: 440px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow), 0 0 40px rgba(255, 60, 20, 0.15);
+  backdrop-filter: blur(16px);
+  z-index: 12;
+  animation: damageReportSlideIn 0.4s ease-out;
+}
+
+@keyframes damageReportSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.damage-report-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(80, 10, 0, 0.35);
+  border-bottom: 1px solid rgba(255, 80, 40, 0.25);
+}
+
+.damage-report-type {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 60, 20, 0.2);
+  color: #ff6b4a;
+}
+
+.damage-report-title {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.damage-report-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.damage-report-close:hover {
+  color: var(--text);
+}
+
+.damage-report-body {
+  padding: 12px 14px;
+}
+
+.damage-report-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.damage-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.damage-metric .label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.damage-metric strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.damage-metric-fatal strong {
+  color: #ff4444;
+}
+
+.damage-metric-injured strong {
+  color: #ffaa44;
+}
+
+.damage-report-cities {
+  max-height: 160px;
+  overflow-y: auto;
+  border-top: 1px solid var(--panel-border);
+  padding-top: 8px;
+}
+
+.damage-city-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 0.72rem;
+}
+
+.damage-city-name {
+  color: var(--text);
+  font-weight: 600;
+  flex: 1;
+}
+
+.damage-city-pop {
+  color: var(--muted);
+  font-size: 0.65rem;
+  margin-left: 8px;
+}
+
+.damage-city-fatalities {
+  color: #ff6b6b;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: right;
 }
 
 /* ── Orbit Planner Panel ─────────────────────────────────────────────── */

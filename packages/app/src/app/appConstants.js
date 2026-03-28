@@ -9,6 +9,8 @@ export const DEFAULT_VIEW_STATE = Object.freeze({
   bases: true,
   context: true,
   defense: true,
+  economy: false,
+  trade: false,
 });
 
 export function createInitialRadarSelection() {

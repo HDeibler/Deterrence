@@ -12,8 +12,9 @@ export function createHudController({ document }) {
   const extra2Label = document.getElementById('infoExtra2Label');
   const extra2Value = document.getElementById('infoExtra2Value');
 
-  let trackedType = null; // 'icbm' | 'interceptor'
+  let trackedType = null; // 'icbm' | 'interceptor' | 'fleet' | 'squadron' | 'oilfield' | 'reserve' | 'port'
   let trackedId = null;
+  let trackedExtra = null;
   let needsInitialZoom = false;
   let onCloseCallback = null;
 
@@ -57,6 +58,37 @@ export function createHudController({ document }) {
       typeEl.className = 'info-card-type';
       idEl.textContent = squadronName ?? `Squadron`;
     },
+    trackOilField(fieldName, fieldData) {
+      trackedType = 'oilfield';
+      trackedId = fieldName;
+      trackedExtra = fieldData;
+      needsInitialZoom = true;
+      card.hidden = false;
+      typeEl.textContent = 'OIL FIELD';
+      typeEl.className = 'info-card-type';
+      idEl.textContent = fieldName;
+    },
+    trackPort(portId, tradeSim) {
+      trackedType = 'port';
+      trackedId = portId;
+      trackedExtra = tradeSim;
+      needsInitialZoom = true;
+      card.hidden = false;
+      typeEl.textContent = 'PORT';
+      typeEl.className = 'info-card-type interceptor';
+      const port = tradeSim.getPortById(portId);
+      idEl.textContent = port ? port.name : 'Oil Port';
+    },
+    trackReserve(facilityId, oilSim) {
+      trackedType = 'reserve';
+      trackedId = facilityId;
+      trackedExtra = oilSim;
+      needsInitialZoom = true;
+      card.hidden = false;
+      typeEl.textContent = 'RESERVE';
+      typeEl.className = 'info-card-type interceptor';
+      idEl.textContent = 'Strategic Petroleum Reserve';
+    },
     clear() {
       clear();
     },
@@ -85,17 +117,58 @@ export function createHudController({ document }) {
           clear();
           return;
         }
-        idEl.textContent = `Missile #${m.id}`;
+        const typeLabels = {
+          icbm: 'ICBM',
+          rv: 'MIRV RV',
+          cruise_subsonic: 'LACM',
+          cruise_supersonic: 'ASCM',
+          hypersonic_glide: 'HGV',
+          hypersonic_cruise: 'HCM',
+        };
+        typeEl.textContent = typeLabels[m.missileType] ?? 'ICBM';
+        if (m.isDecoy) typeEl.textContent += ' (Decoy)';
+        if (m.isRV) typeEl.textContent = 'MIRV RV';
+        idEl.textContent = m.isRV ? `RV #${m.id}` : `Missile #${m.id}`;
         phaseEl.textContent = m.stageLabel ?? m.phase ?? '-';
-        speedEl.textContent = `${m.speedKmS.toFixed(1)} km/s`;
-        altitudeEl.textContent = `${m.altitudeKm.toFixed(0)} km`;
+        const isCruise = m.missileType?.startsWith('cruise');
+        const isHypersonic = m.missileType?.startsWith('hypersonic');
+        // Speed: Mach for cruise/hypersonic, km/s for ICBM
+        if (isCruise || isHypersonic) {
+          const mach = m.machNumber ?? (m.speedKmS * 1000 / 343);
+          speedEl.textContent = `Mach ${mach.toFixed(2)}`;
+        } else {
+          speedEl.textContent = `${m.speedKmS.toFixed(1)} km/s`;
+        }
+        // Altitude: meters for low-alt, km for high-alt
+        altitudeEl.textContent = m.altitudeKm < 1
+          ? `${(m.altitudeKm * 1000).toFixed(0)} m`
+          : `${m.altitudeKm.toFixed(0)} km`;
         flightTimeEl.textContent = formatDuration(m.flightTimeSeconds);
-        extra1Label.textContent = 'Range To Target';
-        extra1Value.textContent = Number.isFinite(m.rangeToTargetKm)
-          ? `${m.rangeToTargetKm.toFixed(0)} km`
-          : '-';
-        extra2Label.textContent = 'Apogee';
-        extra2Value.textContent = `${m.apogeeKm.toFixed(0)} km`;
+        // Extra fields: fuel for cruise, range for all
+        if (isCruise && m.fuelFraction !== undefined) {
+          extra1Label.textContent = 'Fuel';
+          const pct = Math.round(m.fuelFraction * 100);
+          extra1Value.textContent = `${pct}% (${Math.round(m.fuelRemainingKg ?? 0)} kg)`;
+        } else {
+          extra1Label.textContent = 'Range To Target';
+          extra1Value.textContent = Number.isFinite(m.rangeToTargetKm)
+            ? `${m.rangeToTargetKm.toFixed(0)} km`
+            : '-';
+        }
+        if (isCruise) {
+          extra2Label.textContent = 'Distance Flown';
+          extra2Value.textContent = `${Math.round(m.distFlownKm ?? 0)} km`;
+        } else if (isHypersonic) {
+          const skips = m.skipCount ?? 0;
+          const gammaD = ((m.flightPathAngle ?? 0) * 180 / Math.PI).toFixed(1);
+          extra2Label.textContent = m.isScramjet ? 'Scramjet Fuel' : 'Skips';
+          extra2Value.textContent = m.isScramjet
+            ? `${Math.round(m.scramjetFuelKg ?? 0)} kg`
+            : `${skips} (γ ${gammaD}°)`;
+        } else {
+          extra2Label.textContent = 'Apogee';
+          extra2Value.textContent = `${m.apogeeKm.toFixed(0)} km`;
+        }
       } else if (trackedType === 'interceptor') {
         const intc = defenseSnapshot?.interceptors?.find(
           (i) => i.id === trackedId && i.phase !== 'complete',
@@ -186,6 +259,81 @@ export function createHudController({ document }) {
           extra2Label.textContent = 'Position';
           extra2Value.textContent = `${Math.abs(sq.lat).toFixed(1)}${sq.lat >= 0 ? 'N' : 'S'} ${Math.abs(sq.lon).toFixed(1)}${sq.lon >= 0 ? 'E' : 'W'}`;
         }
+      } else if (trackedType === 'oilfield') {
+        const f = trackedExtra;
+        if (!f) { clear(); return; }
+        const bpd = f.currentBpd ?? 0;
+        const peakBpd = f.peakBpd ?? 0;
+        const prodLabel = bpd >= 1e6 ? `${(bpd / 1e6).toFixed(1)}M bpd` : `${Math.round(bpd / 1000).toLocaleString()}K bpd`;
+        const peakLabel = peakBpd >= 1e6 ? `${(peakBpd / 1e6).toFixed(1)}M bpd` : `${Math.round(peakBpd / 1000).toLocaleString()}K bpd`;
+        phaseEl.textContent = f.type === 'offshore' ? 'Offshore' : 'Onshore';
+        speedEl.textContent = prodLabel;
+        extra1Label.textContent = 'Peak Output';
+        speedEl.parentElement.querySelector('.label').textContent = 'Production';
+        altitudeEl.textContent = `${(f.reserves ?? 0).toFixed(1)}B bbl`;
+        altitudeEl.parentElement.querySelector('.label').textContent = 'Reserves';
+        flightTimeEl.textContent = f.discoveryYear ? String(f.discoveryYear) : '-';
+        flightTimeEl.parentElement.querySelector('.label').textContent = 'Discovered';
+        extra1Value.textContent = peakLabel;
+        extra2Label.textContent = 'Country';
+        extra2Value.textContent = f.country ?? '-';
+      } else if (trackedType === 'reserve') {
+        const oilSim = trackedExtra;
+        if (!oilSim) { clear(); return; }
+        const fac = oilSim.getReserveFacilities().find((f) => f.id === trackedId);
+        if (!fac) { clear(); return; }
+        const cs = oilSim.getCountryState(fac.countryIso3);
+        if (!cs) { clear(); return; }
+
+        const OIL_PRICE = 78; // $/barrel approximate
+        const fmtBbl = (v) => v >= 1e9 ? `${(v/1e9).toFixed(1)}B` : v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : `${Math.round(v/1000)}K`;
+        const fmtBpd = (v) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M bpd` : `${Math.round(v/1000)}K bpd`;
+        const milPct = cs.militaryCapacity > 0 ? Math.round((cs.militaryFuel / cs.militaryCapacity) * 100) : 0;
+        const sprPct = cs.nationalCapacity > 0 ? Math.round((cs.nationalReserves / cs.nationalCapacity) * 100) : 0;
+        const reserveValue = Math.round(cs.nationalReserves * OIL_PRICE);
+        const fmtUsd = (v) => v >= 1e12 ? `$${(v/1e12).toFixed(1)}T` : v >= 1e9 ? `$${(v/1e9).toFixed(1)}B` : `$${(v/1e6).toFixed(0)}M`;
+
+        const fillRate = cs.sprFillRateBpd ?? 0;
+        const fillSign = fillRate >= 0 ? '+' : '';
+        const fillLabel = fillRate === 0
+          ? 'FULL'
+          : `${fillSign}${fmtBpd(Math.abs(fillRate))}`;
+
+        phaseEl.textContent = 'Active';
+        speedEl.parentElement.querySelector('.label').textContent = 'Mil. Fuel';
+        speedEl.textContent = `${fmtBbl(cs.militaryFuel)} bbl (${milPct}%)`;
+        altitudeEl.parentElement.querySelector('.label').textContent = 'Nat. SPR';
+        altitudeEl.textContent = `${fmtBbl(cs.nationalReserves)} bbl (${sprPct}%)`;
+        flightTimeEl.parentElement.querySelector('.label').textContent = 'SPR Value';
+        flightTimeEl.textContent = fmtUsd(reserveValue);
+        extra1Label.textContent = 'Production';
+        extra1Value.textContent = fmtBpd(cs.dailyProductionBpd);
+        extra2Label.textContent = 'Fill Rate';
+        extra2Value.textContent = fillLabel;
+      } else if (trackedType === 'port') {
+        const tradeSim = trackedExtra;
+        if (!tradeSim) { clear(); return; }
+        const port = tradeSim.getPortById(trackedId);
+        if (!port) { clear(); return; }
+
+        const fmtBpd = (v) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M bpd` : `${Math.round(v/1000).toLocaleString()}K bpd`;
+        const routes = tradeSim.getRoutes().filter(
+          (r) => r.exportPort.id === port.id || r.importPort.id === port.id,
+        );
+        const disrupted = routes.some((r) => r.disrupted);
+        const totalVolume = routes.reduce((sum, r) => sum + r.volumeBpd, 0);
+
+        phaseEl.textContent = disrupted ? 'Disrupted' : 'Active';
+        speedEl.parentElement.querySelector('.label').textContent = 'Throughput';
+        speedEl.textContent = fmtBpd(port.throughputBpd);
+        altitudeEl.parentElement.querySelector('.label').textContent = 'Current Load';
+        altitudeEl.textContent = fmtBpd(totalVolume);
+        flightTimeEl.parentElement.querySelector('.label').textContent = 'Routes';
+        flightTimeEl.textContent = `${routes.length}`;
+        extra1Label.textContent = 'Country';
+        extra1Value.textContent = port.countryIso3;
+        extra2Label.textContent = 'Status';
+        extra2Value.textContent = disrupted ? 'BLOCKADED' : 'Operational';
       }
     },
   };
@@ -193,7 +341,17 @@ export function createHudController({ document }) {
   function clear() {
     trackedType = null;
     trackedId = null;
+    trackedExtra = null;
     card.hidden = true;
+    // Reset any labels we may have changed
+    const labels = { Speed: 'Speed', Altitude: 'Altitude', 'Flight Time': 'Flight Time' };
+    for (const [id, defaultLabel] of [['infoSpeed', 'Speed'], ['infoAltitude', 'Altitude'], ['infoFlightTime', 'Flight Time']]) {
+      const el = document.getElementById(id);
+      if (el?.parentElement) {
+        const lbl = el.parentElement.querySelector('.label');
+        if (lbl) lbl.textContent = defaultLabel;
+      }
+    }
   }
 }
 

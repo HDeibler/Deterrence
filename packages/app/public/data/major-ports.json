@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "source": "EIA, Energy Institute Statistical Review 2025, World Port Index",
+    "year": 2024,
+    "notes": "Real-world bilateral oil trade flows and major terminal data"
+  },
+  "ports": [
+    { "iso3": "SAU", "name": "Ras Tanura", "lat": 26.64, "lon": 50.15, "throughputBpd": 6000000, "role": "export" },
+    { "iso3": "SAU", "name": "Yanbu", "lat": 24.09, "lon": 38.06, "throughputBpd": 2500000, "role": "export" },
+    { "iso3": "RUS", "name": "Primorsk", "lat": 60.35, "lon": 28.67, "throughputBpd": 1500000, "role": "export" },
+    { "iso3": "RUS", "name": "Kozmino", "lat": 42.73, "lon": 133.07, "throughputBpd": 1600000, "role": "export" },
+    { "iso3": "RUS", "name": "Novorossiysk", "lat": 44.72, "lon": 37.79, "throughputBpd": 1800000, "role": "export" },
+    { "iso3": "IRQ", "name": "Basra Oil Terminal", "lat": 29.68, "lon": 48.84, "throughputBpd": 3500000, "role": "export" },
+    { "iso3": "ARE", "name": "Fujairah", "lat": 25.12, "lon": 56.33, "throughputBpd": 2000000, "role": "export" },
+    { "iso3": "ARE", "name": "Jebel Ali", "lat": 25.01, "lon": 55.06, "throughputBpd": 1500000, "role": "export" },
+    { "iso3": "KWT", "name": "Mina Al Ahmadi", "lat": 29.07, "lon": 48.16, "throughputBpd": 2000000, "role": "export" },
+    { "iso3": "IRN", "name": "Kharg Island", "lat": 29.24, "lon": 50.33, "throughputBpd": 2500000, "role": "export" },
+    { "iso3": "NGA", "name": "Bonny Island", "lat": 4.43, "lon": 7.17, "throughputBpd": 1200000, "role": "export" },
+    { "iso3": "AGO", "name": "Luanda", "lat": -8.80, "lon": 13.23, "throughputBpd": 1000000, "role": "export" },
+    { "iso3": "LBY", "name": "Es Sider", "lat": 30.63, "lon": 18.35, "throughputBpd": 800000, "role": "export" },
+    { "iso3": "NOR", "name": "Mongstad", "lat": 60.81, "lon": 5.03, "throughputBpd": 900000, "role": "export" },
+    { "iso3": "CAN", "name": "Vancouver", "lat": 49.29, "lon": -123.11, "throughputBpd": 600000, "role": "export" },
+    { "iso3": "MEX", "name": "Dos Bocas", "lat": 18.43, "lon": -93.19, "throughputBpd": 1000000, "role": "export" },
+    { "iso3": "VEN", "name": "Jose Terminal", "lat": 10.21, "lon": -64.97, "throughputBpd": 800000, "role": "export" },
+    { "iso3": "BRA", "name": "Angra dos Reis", "lat": -23.01, "lon": -44.32, "throughputBpd": 1200000, "role": "export" },
+    { "iso3": "KAZ", "name": "Aktau", "lat": 43.65, "lon": 51.15, "throughputBpd": 600000, "role": "export" },
+    { "iso3": "MYS", "name": "Tanjung Bin", "lat": 1.36, "lon": 103.55, "throughputBpd": 500000, "role": "export" },
+    { "iso3": "USA", "name": "Houston", "lat": 29.76, "lon": -95.09, "throughputBpd": 3000000, "role": "both" },
+    { "iso3": "USA", "name": "Louisiana LOOP", "lat": 28.93, "lon": -89.97, "throughputBpd": 2500000, "role": "both" },
+    { "iso3": "CHN", "name": "Ningbo-Zhoushan", "lat": 29.87, "lon": 122.10, "throughputBpd": 3000000, "role": "import" },
+    { "iso3": "CHN", "name": "Qingdao", "lat": 36.07, "lon": 120.38, "throughputBpd": 2000000, "role": "import" },
+    { "iso3": "CHN", "name": "Dalian", "lat": 38.92, "lon": 121.64, "throughputBpd": 1500000, "role": "import" },
+    { "iso3": "IND", "name": "Jamnagar", "lat": 22.47, "lon": 70.07, "throughputBpd": 1400000, "role": "import" },
+    { "iso3": "IND", "name": "Vadinar", "lat": 22.35, "lon": 69.72, "throughputBpd": 1000000, "role": "import" },
+    { "iso3": "IND", "name": "Paradip", "lat": 20.26, "lon": 86.63, "throughputBpd": 600000, "role": "import" },
+    { "iso3": "JPN", "name": "Chiba", "lat": 35.60, "lon": 140.10, "throughputBpd": 800000, "role": "import" },
+    { "iso3": "JPN", "name": "Kiire", "lat": 31.38, "lon": 130.72, "throughputBpd": 600000, "role": "import" },
+    { "iso3": "KOR", "name": "Yeosu", "lat": 34.74, "lon": 127.74, "throughputBpd": 1500000, "role": "import" },
+    { "iso3": "KOR", "name": "Ulsan", "lat": 35.50, "lon": 129.38, "throughputBpd": 1200000, "role": "import" },
+    { "iso3": "NLD", "name": "Rotterdam", "lat": 51.90, "lon": 4.50, "throughputBpd": 2000000, "role": "import" },
+    { "iso3": "DEU", "name": "Wilhelmshaven", "lat": 53.51, "lon": 8.14, "throughputBpd": 800000, "role": "import" },
+    { "iso3": "ITA", "name": "Trieste", "lat": 45.65, "lon": 13.78, "throughputBpd": 700000, "role": "import" },
+    { "iso3": "ESP", "name": "Algeciras", "lat": 36.13, "lon": -5.44, "throughputBpd": 600000, "role": "import" },
+    { "iso3": "TUR", "name": "Ceyhan", "lat": 36.88, "lon": 35.81, "throughputBpd": 1000000, "role": "both" },
+    { "iso3": "SGP", "name": "Singapore", "lat": 1.26, "lon": 103.83, "throughputBpd": 2500000, "role": "both" },
+    { "iso3": "GBR", "name": "Milford Haven", "lat": 51.71, "lon": -5.05, "throughputBpd": 600000, "role": "import" },
+    { "iso3": "ZAF", "name": "Saldanha Bay", "lat": -33.00, "lon": 17.93, "throughputBpd": 500000, "role": "import" },
+    { "iso3": "AUS", "name": "Kwinana", "lat": -32.24, "lon": 115.77, "throughputBpd": 400000, "role": "import" },
+    { "iso3": "TWN", "name": "Kaohsiung", "lat": 22.62, "lon": 120.27, "throughputBpd": 800000, "role": "import" },
+    { "iso3": "THA", "name": "Map Ta Phut", "lat": 12.72, "lon": 101.18, "throughputBpd": 600000, "role": "import" },
+    { "iso3": "EGY", "name": "Ain Sukhna", "lat": 29.60, "lon": 32.33, "throughputBpd": 900000, "role": "both" },
+    { "iso3": "FRA", "name": "Le Havre", "lat": 49.48, "lon": 0.12, "throughputBpd": 500000, "role": "import" },
+    { "iso3": "BEL", "name": "Antwerp", "lat": 51.23, "lon": 4.40, "throughputBpd": 500000, "role": "import" }
+  ],
+  "tradeFlows": [
+    { "from": "SAU", "to": "CHN", "mbpd": 1.6, "note": "14% of China imports" },
+    { "from": "SAU", "to": "IND", "mbpd": 0.9, "note": "~13% of India imports" },
+    { "from": "SAU", "to": "JPN", "mbpd": 1.0, "note": "largest supplier to Japan" },
+    { "from": "SAU", "to": "KOR", "mbpd": 0.9, "note": "largest supplier to S.Korea" },
+    { "from": "SAU", "to": "USA", "mbpd": 0.4, "note": "reduced from peak" },
+    { "from": "SAU", "to": "NLD", "mbpd": 0.3, "note": "Rotterdam refinery supply" },
+    { "from": "SAU", "to": "SGP", "mbpd": 0.3, "note": "Singapore refinery hub" },
+    { "from": "SAU", "to": "TWN", "mbpd": 0.3, "note": "Taiwan refinery supply" },
+    { "from": "SAU", "to": "THA", "mbpd": 0.2, "note": "Thailand refinery supply" },
+
+    { "from": "RUS", "to": "CHN", "mbpd": 2.2, "note": "largest single flow to China" },
+    { "from": "RUS", "to": "IND", "mbpd": 1.8, "note": "surged post-2022 sanctions" },
+    { "from": "RUS", "to": "TUR", "mbpd": 0.3, "note": "Black Sea route" },
+    { "from": "RUS", "to": "NLD", "mbpd": 0.2, "note": "reduced post-sanctions" },
+    { "from": "RUS", "to": "KOR", "mbpd": 0.2, "note": "Kozmino Pacific route" },
+
+    { "from": "IRQ", "to": "CHN", "mbpd": 1.3, "note": "12% of China imports" },
+    { "from": "IRQ", "to": "IND", "mbpd": 1.1, "note": "major supplier to India" },
+    { "from": "IRQ", "to": "KOR", "mbpd": 0.4, "note": "Basra crude to Yeosu" },
+    { "from": "IRQ", "to": "ITA", "mbpd": 0.2, "note": "Trieste pipeline" },
+    { "from": "IRQ", "to": "ESP", "mbpd": 0.1, "note": "Mediterranean route" },
+
+    { "from": "ARE", "to": "CHN", "mbpd": 0.7, "note": "Fujairah exports east" },
+    { "from": "ARE", "to": "JPN", "mbpd": 0.7, "note": "major Japan supplier" },
+    { "from": "ARE", "to": "IND", "mbpd": 0.6, "note": "short route to Gujarat" },
+    { "from": "ARE", "to": "KOR", "mbpd": 0.4, "note": "Korea supply" },
+    { "from": "ARE", "to": "THA", "mbpd": 0.2, "note": "SE Asia supply" },
+
+    { "from": "KWT", "to": "CHN", "mbpd": 0.5, "note": "Kuwait to east Asia" },
+    { "from": "KWT", "to": "JPN", "mbpd": 0.3, "note": "long-term Japan contracts" },
+    { "from": "KWT", "to": "KOR", "mbpd": 0.4, "note": "Korea supply" },
+    { "from": "KWT", "to": "IND", "mbpd": 0.3, "note": "India supply" },
+
+    { "from": "CAN", "to": "USA", "mbpd": 4.1, "note": "62% of US imports, pipeline+tanker" },
+
+    { "from": "USA", "to": "NLD", "mbpd": 0.5, "note": "US shale to Rotterdam" },
+    { "from": "USA", "to": "KOR", "mbpd": 0.4, "note": "2nd largest supplier to Korea" },
+    { "from": "USA", "to": "GBR", "mbpd": 0.3, "note": "transatlantic route" },
+    { "from": "USA", "to": "CHN", "mbpd": 0.2, "note": "reduced, trade tensions" },
+    { "from": "USA", "to": "JPN", "mbpd": 0.2, "note": "Pacific route" },
+    { "from": "USA", "to": "IND", "mbpd": 0.3, "note": "growing flow" },
+
+    { "from": "BRA", "to": "CHN", "mbpd": 0.7, "note": "pre-salt crude to China" },
+    { "from": "BRA", "to": "NLD", "mbpd": 0.1, "note": "Atlantic route" },
+    { "from": "BRA", "to": "ESP", "mbpd": 0.1, "note": "to Algeciras" },
+
+    { "from": "NGA", "to": "NLD", "mbpd": 0.2, "note": "Bonny Light to Europe" },
+    { "from": "NGA", "to": "IND", "mbpd": 0.3, "note": "West Africa to India" },
+    { "from": "NGA", "to": "ESP", "mbpd": 0.1, "note": "Mediterranean" },
+
+    { "from": "AGO", "to": "CHN", "mbpd": 0.5, "note": "major Angola-China corridor" },
+    { "from": "AGO", "to": "IND", "mbpd": 0.2, "note": "West Africa to India" },
+
+    { "from": "NOR", "to": "NLD", "mbpd": 0.3, "note": "North Sea to Rotterdam" },
+    { "from": "NOR", "to": "GBR", "mbpd": 0.3, "note": "short North Sea route" },
+    { "from": "NOR", "to": "DEU", "mbpd": 0.3, "note": "to Wilhelmshaven" },
+    { "from": "NOR", "to": "FRA", "mbpd": 0.2, "note": "to Le Havre" },
+
+    { "from": "IRN", "to": "CHN", "mbpd": 1.3, "note": "sanctions-discounted crude" },
+
+    { "from": "MEX", "to": "USA", "mbpd": 0.5, "note": "Gulf of Mexico route" },
+    { "from": "MEX", "to": "ESP", "mbpd": 0.1, "note": "Maya crude to Spain" },
+
+    { "from": "LBY", "to": "ITA", "mbpd": 0.2, "note": "short Mediterranean route" },
+    { "from": "LBY", "to": "ESP", "mbpd": 0.1, "note": "Mediterranean route" },
+    { "from": "LBY", "to": "DEU", "mbpd": 0.1, "note": "via pipeline/tanker" },
+
+    { "from": "KAZ", "to": "ITA", "mbpd": 0.4, "note": "CPC pipeline to Novorossiysk then tanker" },
+    { "from": "KAZ", "to": "NLD", "mbpd": 0.2, "note": "CPC blend to Rotterdam" },
+
+    { "from": "MYS", "to": "SGP", "mbpd": 0.2, "note": "short strait route" },
+    { "from": "MYS", "to": "AUS", "mbpd": 0.1, "note": "to Kwinana" },
+
+    { "from": "VEN", "to": "CHN", "mbpd": 0.3, "note": "sanctions-routed crude" },
+    { "from": "VEN", "to": "IND", "mbpd": 0.1, "note": "discounted crude" }
+  ]
+}

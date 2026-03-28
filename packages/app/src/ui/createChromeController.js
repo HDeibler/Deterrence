@@ -59,6 +59,16 @@ export function createChromeController({ document }) {
       label: document.getElementById('viewDefenseLabel'),
       baseLabel: 'Defense',
     },
+    economy: {
+      button: document.getElementById('viewEconomyToggle'),
+      label: document.getElementById('viewEconomyLabel'),
+      baseLabel: 'Economy',
+    },
+    trade: {
+      button: document.getElementById('viewTradeToggle'),
+      label: document.getElementById('viewTradeLabel'),
+      baseLabel: 'Trade',
+    },
   };
 
   updateMissileButton({ mode: 'idle' });
@@ -101,6 +111,39 @@ export function createChromeController({ document }) {
       warheadDecreaseButton.addEventListener('click', handler);
       return () => warheadDecreaseButton.removeEventListener('click', handler);
     },
+    onSelectMissileType(handler) {
+      const selector = document.getElementById('missileTypeSelector');
+      if (!selector) return () => {};
+      const listener = (e) => {
+        const btn = e.target.closest('[data-type]');
+        if (!btn) return;
+        const typeId = btn.dataset.type;
+        // Update selected state
+        for (const b of selector.querySelectorAll('.missile-type-btn')) {
+          b.classList.toggle('selected', b.dataset.type === typeId);
+        }
+        handler(typeId);
+      };
+      selector.addEventListener('click', listener);
+      return () => selector.removeEventListener('click', listener);
+    },
+    onCycleWarhead(handler) {
+      const btn = document.getElementById('warheadCycleBtn');
+      if (!btn) return () => {};
+      btn.addEventListener('click', handler);
+      return () => btn.removeEventListener('click', handler);
+    },
+    setWarheadLabel(label) {
+      const el = document.getElementById('warheadSelectorLabel');
+      if (el) el.textContent = label;
+    },
+    setSelectedMissileType(typeId) {
+      const selector = document.getElementById('missileTypeSelector');
+      if (!selector) return;
+      for (const btn of selector.querySelectorAll('.missile-type-btn')) {
+        btn.classList.toggle('selected', btn.dataset.type === typeId);
+      }
+    },
     onToggleViewLaunch(handler) {
       return bindViewToggle(viewButtons.launch.button, handler);
     },
@@ -118,6 +161,12 @@ export function createChromeController({ document }) {
     },
     onToggleViewDefense(handler) {
       return bindViewToggle(viewButtons.defense.button, handler);
+    },
+    onToggleViewEconomy(handler) {
+      return bindViewToggle(viewButtons.economy.button, handler);
+    },
+    onToggleViewTrade(handler) {
+      return bindViewToggle(viewButtons.trade.button, handler);
     },
     onOpenSettings(handler) {
       settingsButton.addEventListener('click', handler);

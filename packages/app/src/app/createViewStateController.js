@@ -49,6 +49,8 @@ export function createViewStateController({
     chrome.setViewState('bases', state.bases);
     chrome.setViewState('context', state.context);
     chrome.setViewState('defense', state.defense);
+    chrome.setViewState('economy', state.economy);
+    chrome.setViewState('trade', state.trade);
 
     const radarVisible = state.radar || getRadarMode() !== 'off';
     radarVisualSystem.setAssetsVisible(radarVisible);

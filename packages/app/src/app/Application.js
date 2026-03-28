@@ -16,6 +16,8 @@ import { createCityLabelSystem } from '../world/systems/createCityLabelSystem.js
 import { createCountryBorderSystem } from '../world/systems/createCountryBorderSystem.js';
 import { createMissileOverlaySystem } from '../world/systems/createMissileOverlaySystem.js';
 import { createFleetOverlaySystem } from '../world/systems/createFleetOverlaySystem.js';
+import { createTradeOverlaySystem } from '../world/systems/createTradeOverlaySystem.js';
+import { createTradeSimulation } from '../simulation/createTradeSimulation.js';
 import { createSquadronOverlaySystem } from '../world/systems/createSquadronOverlaySystem.js';
 import { createSquadronBuilderController } from '../ui/createSquadronBuilderController.js';
 import { createSquadronActionController } from '../ui/createSquadronActionController.js';
@@ -40,6 +42,9 @@ import {
   GEO_SELECTION_CAMERA_POSITION,
   STRIKE_LAUNCH_STAGGER_MS,
 } from './appConstants.js';
+import { createOilSimulation } from '../simulation/createOilSimulation.js';
+import { createDamageSimulation } from '../simulation/createDamageSimulation.js';
+import { getMissileType, getCompatibleWarheads, getWarheadType } from '../game/data/munitionCatalog.js';
 import { createMissileFlightController } from './createMissileFlightController.js';
 import { createScenarioController, SCENARIOS } from '../game/createScenarioController.js';
 import { createPointerController } from './createPointerController.js';
@@ -95,6 +100,8 @@ export async function createApplication({
   let pendingMissionPlan = null;
   let radarMode = 'off';
   let selectedInterceptorType = 'ngi';
+  let selectedMissileType = 'icbm';
+  let selectedWarheadId = 'nuclear_300kt';
   const radarSelection = createInitialRadarSelection();
   const selection = createInitialStrikeSelection();
 
@@ -164,6 +171,71 @@ export async function createApplication({
 
   function hideAirHint() {
     airHint.hidden = true;
+  }
+
+  // ── Damage report UI ──────────────────────────────────────────────
+  const damageReportEl = document.getElementById('damageReport');
+  const damageReportTitle = document.getElementById('damageReportTitle');
+  const damageReportFatalities = document.getElementById('damageReportFatalities');
+  const damageReportInjured = document.getElementById('damageReportInjured');
+  const damageReportYield = document.getElementById('damageReportYield');
+  const damageReportWarhead = document.getElementById('damageReportWarhead');
+  const damageReportCities = document.getElementById('damageReportCities');
+  const damageReportCloseBtn = document.getElementById('damageReportClose');
+  let damageReportTimer = null;
+
+  damageReportCloseBtn?.addEventListener('click', () => {
+    damageReportEl.hidden = true;
+    if (damageReportTimer) clearTimeout(damageReportTimer);
+  });
+
+  function showDamageReport(report) {
+    const coordLabel = formatTargetLabel(report.impactPoint);
+    const nearestCity = report.affectedCities[0]?.name ?? null;
+    damageReportTitle.textContent = nearestCity
+      ? `${nearestCity} region (${coordLabel})`
+      : coordLabel;
+
+    damageReportFatalities.textContent = formatCompactNumber(report.totalFatalities);
+    damageReportInjured.textContent = formatCompactNumber(report.totalInjured);
+    damageReportYield.textContent = report.yieldKt >= 1000
+      ? `${(report.yieldKt / 1000).toFixed(1)} Mt`
+      : report.yieldKt >= 1
+        ? `${report.yieldKt} kt`
+        : 'Conventional';
+    damageReportWarhead.textContent = report.warheadLabel;
+
+    damageReportCities.innerHTML = '';
+    for (const city of report.affectedCities.slice(0, 8)) {
+      const row = document.createElement('div');
+      row.className = 'damage-city-row';
+      row.innerHTML = `<span class="damage-city-name">${city.name}</span>`
+        + `<span class="damage-city-pop">${formatCompactNumber(city.population)} pop</span>`
+        + `<span class="damage-city-fatalities">${formatCompactNumber(city.fatalities)} killed</span>`;
+      damageReportCities.appendChild(row);
+    }
+
+    damageReportEl.hidden = false;
+
+    if (damageReportTimer) clearTimeout(damageReportTimer);
+    damageReportTimer = setTimeout(() => {
+      damageReportEl.hidden = true;
+    }, 20000);
+
+    notifications.push({
+      text: report.totalFatalities > 0
+        ? `IMPACT: ${formatCompactNumber(report.totalFatalities)} casualties${nearestCity ? ` near ${nearestCity}` : ''}`
+        : `IMPACT: Detonation at ${coordLabel} — no population centers affected`,
+      type: 'alert',
+      duration: 15000,
+      group: `impact-${report.missileId}`,
+    });
+  }
+
+  function formatCompactNumber(n) {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return String(n);
   }
 
   // Build ocean nav grid from earth texture (deferred — non-blocking)
@@ -240,6 +312,62 @@ export async function createApplication({
     worldConfig,
     getEarthRotationRadians: () => celestialSystem.getEarthRotationRadians(),
   });
+  const oilSimulation = createOilSimulation();
+  missileOverlay.setOilSimulation(oilSimulation);
+  const tradeSimulation = createTradeSimulation({
+    oilSimulation,
+    oceanNavGrid,
+    navalSimulation,
+  });
+  const tradeOverlay = createTradeOverlaySystem({
+    document,
+    mountNode: sceneContext.renderer.domElement,
+    renderer: sceneContext.renderer,
+    camera: sceneContext.camera,
+    earthGroup: celestialSystem.groups.earth,
+    worldConfig,
+  });
+  const damageSimulation = createDamageSimulation();
+  damageSimulation.ensureLoaded();
+  const impactedMissileIds = new Set();
+
+  // Petroleum panel elements
+  const placeReserveBtn = document.getElementById('placeReserveBtn');
+  const placePortBtn = document.getElementById('placePortBtn');
+  const petroleumSummaryLabel = document.getElementById('petroleumSummaryLabel');
+
+  placeReserveBtn?.addEventListener('click', () => {
+    if (!activeCountryIso3) return;
+    placingReserve = true;
+    pendingReserveTarget = null;
+    notifications.info('Click on the globe to stage reserve location. Enter confirms, Escape cancels.');
+  });
+
+  placePortBtn?.addEventListener('click', () => {
+    if (!activeCountryIso3) return;
+    placingPort = true;
+    pendingPortTarget = null;
+    // Auto-enable trade view so the player sees ports
+    if (!viewController.isEnabled('trade')) {
+      viewController.toggle('trade');
+    }
+    notifications.info('Click a coastal location to place an oil port. Enter confirms, Escape cancels.');
+  });
+
+  let placingReserve = false;
+  let pendingReserveTarget = null;
+  let placingPort = false;
+  let pendingPortTarget = null;
+
+  // Resource panel elements
+  const resourcePanel = document.getElementById('resourcePanel');
+  const resourceMilFuel = document.getElementById('resourceMilFuel');
+  const resourceMilRate = document.getElementById('resourceMilRate');
+  const resourceMilBar = document.getElementById('resourceMilBar');
+  const resourceOilReserves = document.getElementById('resourceOilReserves');
+  const resourceOilRate = document.getElementById('resourceOilRate');
+  const resourceOilBar = document.getElementById('resourceOilBar');
+
   const scenarioController = createScenarioController({
     missileFlights,
     radarSimulation,
@@ -289,6 +417,8 @@ export async function createApplication({
       airSimulation.step(stepSeconds);
       radarSimulation.step(stepSeconds);
       scenarioController.step(stepSeconds);
+      oilSimulation.step(stepSeconds);
+      tradeSimulation.step(stepSeconds);
 
       // Missile defense: detect threats + launch interceptors
       const radarSnap = radarSimulation.getSnapshot();
@@ -313,6 +443,28 @@ export async function createApplication({
         } else if (intc.result === 'miss') {
           defenseOverlay.spawnExplosion(intc.position);
           notifications.warn(`MISS: ${intc.type.toUpperCase()} interceptor self-destructed`, 'intercept-miss');
+        }
+      }
+
+      // Detect missile ground impacts — spawn ground explosion + damage report
+      for (const snap of missileSnaps) {
+        if (snap.phase !== 'impact') continue;
+        if (impactedMissileIds.has(snap.id)) continue;
+        impactedMissileIds.add(snap.id);
+
+        // Spawn warhead-specific ground impact explosion
+        if (snap.position) {
+          defenseOverlay.spawnGroundImpact(snap.position, snap.warheadId ?? 'nuclear_300kt');
+        }
+
+        // Compute damage report if city data is loaded
+        if (damageSimulation.isReady() && snap.impactPoint) {
+          const report = damageSimulation.assessImpact({
+            impactPoint: snap.impactPoint,
+            warheadId: snap.warheadId ?? 'nuclear_300kt',
+            missileId: snap.id,
+          });
+          showDamageReport(report);
         }
       }
 
@@ -356,6 +508,37 @@ export async function createApplication({
     }
     if (clockDateEl) {
       clockDateEl.textContent = gameClock.getFormattedDate();
+    }
+
+    // Update resource panel
+    if (resourcePanel && activeCountryIso3 && oilSimulation.isLoaded()) {
+      resourcePanel.hidden = false;
+      const s = oilSimulation.getCountryState(activeCountryIso3);
+      if (s) {
+        // Military fuel (top row — what the player actually spends)
+        resourceMilFuel.textContent = formatBarrels(s.militaryFuel);
+        resourceMilRate.textContent = `+${formatBpd(s.militaryDailyAllocation)} alloc/day`;
+        const milPct = s.militaryCapacity > 0
+          ? Math.round((s.militaryFuel / s.militaryCapacity) * 100) : 0;
+        resourceMilBar.style.width = `${milPct}%`;
+
+        // National SPR (bottom row — background economy)
+        resourceOilReserves.textContent = formatBarrels(s.nationalReserves);
+        const sprPct = s.nationalCapacity > 0
+          ? Math.round((s.nationalReserves / s.nationalCapacity) * 100) : 0;
+        resourceOilRate.textContent = `SPR ${sprPct}%`;
+        resourceOilBar.style.width = `${sprPct}%`;
+      }
+    } else if (resourcePanel) {
+      resourcePanel.hidden = true;
+    }
+
+    // Update petroleum summary label
+    if (petroleumSummaryLabel && activeCountryIso3 && oilSimulation.isLoaded()) {
+      const ps = oilSimulation.getCountryState(activeCountryIso3);
+      if (ps) {
+        petroleumSummaryLabel.textContent = formatBarrels(ps.militaryFuel);
+      }
     }
 
     celestialSystem.updateVisuals({
@@ -534,6 +717,21 @@ export async function createApplication({
             }
           }
         }
+      } else if (tracked.type === 'oilfield') {
+        const field = missileOverlay.pickOilFieldByName(tracked.id);
+        if (field) {
+          followPos = latLonToWorld(field.lat, field.lon);
+        }
+      } else if (tracked.type === 'reserve') {
+        const fac = oilSimulation.getReserveFacilities().find((f) => f.id === tracked.id);
+        if (fac) {
+          followPos = latLonToWorld(fac.lat, fac.lon);
+        }
+      } else if (tracked.type === 'port') {
+        const port = tradeSimulation.getPortById(tracked.id);
+        if (port) {
+          followPos = latLonToWorld(port.lat, port.lon);
+        }
       }
       if (followPos) {
         sceneContext.controls.minDistance = 0.3;
@@ -566,6 +764,10 @@ export async function createApplication({
       flights: visibleMissileSnapshots,
       radar: buildRadarOverlayState(visibleRadarSnapshot),
       showFlightMarkers: viewController.isEnabled('launch'),
+      playerCountry: activeCountryIso3,
+      pendingReserve: placingReserve ? pendingReserveTarget : null,
+      missileTypeLabel: getMissileType(selectedMissileType)?.label ?? null,
+      warheadLabel: getWarheadType(selectedWarheadId)?.label ?? null,
     });
     countryBorders.render({ altitudeKm });
     cityLabels.render({ altitudeKm });
@@ -629,6 +831,19 @@ export async function createApplication({
         trails: selectedTrailsZoomed,
         sunLightPosition: environment.sunLight.position,
       });
+    }
+
+    // Trade overlay — shipping lanes, cargo ships, ports
+    if (viewController.isEnabled('trade') && tradeSimulation.isLoaded()) {
+      tradeOverlay.render({
+        routes: tradeSimulation.getRoutes(),
+        cargoShips: tradeSimulation.getCargoShipSnapshots(),
+        ports: tradeSimulation.getPorts(),
+        elapsedTime: clock.elapsedTime,
+        pendingPort: placingPort ? pendingPortTarget : null,
+      });
+    } else {
+      tradeOverlay.render({ routes: [], cargoShips: [], ports: [], elapsedTime: 0, pendingPort: placingPort ? pendingPortTarget : null });
     }
 
     // Only update floating screen positions when NOT embedded in the info card
@@ -883,6 +1098,52 @@ export async function createApplication({
         return;
       }
 
+      // Reserve placement mode — click stages location, Enter confirms
+      if (placingReserve && activeCountryIso3) {
+        const target = getTargetFromPointer(event);
+        if (target) {
+          pendingReserveTarget = target;
+          requestRender();
+          return;
+        }
+      }
+
+      // Port placement mode — click stages coastal location
+      if (placingPort && activeCountryIso3) {
+        const target = getTargetFromPointer(event);
+        if (target) {
+          if (!tradeSimulation.isCoastal(target.lat, target.lon)) {
+            notifications.warn('Port must be placed on or near the coast.');
+          } else {
+            pendingPortTarget = target;
+            requestRender();
+          }
+          return;
+        }
+      }
+
+      // Check if clicking on a port (trade overlay)
+      if (viewController.isEnabled('trade')) {
+        const pickedPort = tradeOverlay.pickPort(event.clientX, event.clientY);
+        if (pickedPort) {
+          startTracking('port', pickedPort.id);
+          requestRender();
+          return;
+        }
+      }
+
+      // Check if clicking on an oil field or reserve facility
+      const pickedOil = missileOverlay.pickOilField(event.clientX, event.clientY);
+      if (pickedOil) {
+        if (pickedOil.type === 'facility') {
+          startTracking('reserve', pickedOil.data.id);
+        } else {
+          startTracking('oilfield', pickedOil.data.name);
+        }
+        requestRender();
+        return;
+      }
+
       // Check if clicking on a base belonging to active country
       const site = missileOverlay.pickLaunchSite(event.clientX, event.clientY);
       if (site && site.countryIso3 === activeCountryIso3) {
@@ -1088,46 +1349,142 @@ export async function createApplication({
     });
   }
 
-  function executeStrike() {
-    if (selection.targets.length === 0) {
-      return;
+  function getLaunchCategories(missileTypeId) {
+    const missileType = getMissileType(missileTypeId);
+    if (!missileType) return ['silo'];
+    const platformToCategory = {
+      silo: 'silo',
+      airbase: 'airbase',
+      naval: 'naval',
+    };
+    return missileType.launchPlatforms.map((p) => platformToCategory[p]).filter(Boolean);
+  }
+
+  function findLaunchSite(country, categories, targetLat, targetLon) {
+    const sites = installationStore.selectLaunchSites({
+      iso3: country, targetLat, targetLon, count: 1, categories,
+    });
+    if (sites.length > 0) return sites[0];
+
+    // Fallback: try naval fleets for ship-launched missiles
+    if (categories.includes('naval')) {
+      const fleets = navalSimulation.getFleets().filter((f) =>
+        f.countryIso3 === country || !f.countryIso3,
+      );
+      if (fleets.length > 0) {
+        let bestFleet = fleets[0];
+        let bestDist = Infinity;
+        for (const fleet of fleets) {
+          const d = haversineDistanceKm(
+            { lat: fleet.lat, lon: fleet.lon },
+            { lat: targetLat, lon: targetLon },
+          );
+          if (d < bestDist) { bestDist = d; bestFleet = fleet; }
+        }
+        return {
+          id: `fleet_${bestFleet.id}`,
+          name: bestFleet.name ?? `Fleet ${bestFleet.id}`,
+          latitude: bestFleet.lat,
+          longitude: bestFleet.lon,
+          category: 'naval',
+          countryIso3: country,
+        };
+      }
     }
+    return null;
+  }
+
+  function validateRange(launchSite, target, missileTypeData) {
+    const dist = haversineDistanceKm(
+      { lat: launchSite.latitude, lon: launchSite.longitude },
+      { lat: target.lat, lon: target.lon },
+    );
+    if (dist > missileTypeData.maxRangeKm) {
+      notifications.warn(`Target out of range for ${missileTypeData.label}: ${Math.round(dist)} km (max ${missileTypeData.maxRangeKm} km)`);
+      return false;
+    }
+    if (dist < (missileTypeData.minRangeKm ?? 0)) {
+      notifications.warn(`Target too close for ${missileTypeData.label}: ${Math.round(dist)} km (min ${missileTypeData.minRangeKm} km)`);
+      return false;
+    }
+    return true;
+  }
+
+  function executeStrike() {
+    if (selection.targets.length === 0) return;
 
     const country = installationStore.getActiveCountry();
+    const categories = getLaunchCategories(selectedMissileType);
+    const missileTypeData = getMissileType(selectedMissileType);
+    const isICBM = selectedMissileType === 'icbm';
+    const rvPerMissile = isICBM ? 3 : 1; // Minuteman III carries 3 MIRVs
+
+    // For ICBMs: group targets into batches of rvPerMissile for MIRV
+    // For other types: one missile per target
+    const targetBatches = [];
+    if (isICBM && selection.targets.length > 1) {
+      for (let i = 0; i < selection.targets.length; i += rvPerMissile) {
+        targetBatches.push(selection.targets.slice(i, i + rvPerMissile));
+      }
+    } else {
+      for (const t of selection.targets) {
+        targetBatches.push([t]);
+      }
+    }
+
     let launchIndex = 0;
+    for (const batch of targetBatches) {
+      const primaryTarget = batch[0];
+      const launchSite = findLaunchSite(country, categories, primaryTarget.lat, primaryTarget.lon);
 
-    for (const target of selection.targets) {
-      const silos = installationStore.selectLaunchSilos({
-        iso3: country,
-        targetLat: target.lat,
-        targetLon: target.lon,
-        count: 1,
-      });
-
-      if (silos.length === 0) {
+      if (!launchSite) {
+        notifications.warn(`No ${categories.join('/')} launch site available for ${missileTypeData?.label ?? 'missile'}`);
         continue;
       }
 
-      const silo = silos[0];
-      installationStore.markSiloSpent(silo.id);
-      const labeledTarget = { ...target, label: target.label ?? formatTargetLabel(target) };
+      if (missileTypeData && !validateRange(launchSite, primaryTarget, missileTypeData)) {
+        continue;
+      }
+
+      installationStore.markSiloSpent(launchSite.id);
+      const labeledTarget = { ...primaryTarget, label: primaryTarget.label ?? formatTargetLabel(primaryTarget) };
+
+      // MIRV targets: all targets in this batch (for ICBM with >1 target)
+      const mirvTargets = batch.length > 1
+        ? batch.map((t) => ({ ...t, label: t.label ?? formatTargetLabel(t) }))
+        : null;
+
       const delay = launchIndex * STRIKE_LAUNCH_STAGGER_MS;
+      const typeId = selectedMissileType;
+      const whId = selectedWarheadId;
+      const site = launchSite;
+
+      const doLaunch = () => {
+        missileFlights.launch({
+          launchSite: site,
+          target: labeledTarget,
+          missileTypeId: typeId,
+          warheadId: whId,
+          mirvTargets,
+        });
+      };
 
       if (delay === 0) {
-        launchSingleMissile({ launchSite: silo, target: labeledTarget });
+        doLaunch();
       } else {
-        setTimeout(() => {
-          launchSingleMissile({ launchSite: silo, target: labeledTarget });
-          requestRender();
-        }, delay);
+        setTimeout(() => { doLaunch(); requestRender(); }, delay);
       }
+
+      if (mirvTargets) {
+        notifications.info(`MIRV: ${batch.length} RVs assigned to ICBM from ${site.name}`);
+      }
+
       launchIndex += 1;
     }
 
-    // Keep targets visible as reference, reset for next round
     const warheadCount = missileOverlay.getStrikeCount();
-    const available = installationStore.getAvailableSiloCount(country);
-    missileOverlay.setStrikeCount(Math.min(warheadCount, available));
+    const available = installationStore.getAvailableSiteCount(country, categories);
+    missileOverlay.setStrikeCount(Math.min(warheadCount, Math.max(available, 1)));
     selection.targets = [];
     missileOverlay.setMode('strike');
     syncStrikeChrome('strike');
@@ -1144,6 +1501,8 @@ export async function createApplication({
     launchSingleMissile({
       launchSite: selection.launchSite,
       target: selection.target,
+      missileTypeId: selectedMissileType,
+      warheadId: selectedWarheadId,
     });
     selection.launchSite = null;
     missileOverlay.setMode('selectLaunch');
@@ -1166,6 +1525,22 @@ export async function createApplication({
 
     if (key === 'escape') {
       if (!session.started) {
+        return;
+      }
+      // Cancel reserve placement
+      if (placingReserve) {
+        placingReserve = false;
+        pendingReserveTarget = null;
+        notifications.info('Reserve placement cancelled');
+        requestRender();
+        return;
+      }
+      // Cancel port placement
+      if (placingPort) {
+        placingPort = false;
+        pendingPortTarget = null;
+        notifications.info('Port placement cancelled');
+        requestRender();
         return;
       }
       // Clear tracked object first — restores camera
@@ -1216,7 +1591,31 @@ export async function createApplication({
     } else if (key === 'r') {
       toggleRadarMode();
     } else if (key === 'enter') {
-      if (awaitingDestination && pendingRoute && selectedFleetId) {
+      if (placingReserve && pendingReserveTarget && activeCountryIso3) {
+        oilSimulation.placeReserveFacility({
+          countryIso3: activeCountryIso3,
+          lat: pendingReserveTarget.lat,
+          lon: pendingReserveTarget.lon,
+        });
+        placingReserve = false;
+        pendingReserveTarget = null;
+        notifications.success('Strategic Oil Reserve placed');
+        requestRender();
+      } else if (placingPort && pendingPortTarget && activeCountryIso3) {
+        tradeSimulation.placePort({
+          countryIso3: activeCountryIso3,
+          lat: pendingPortTarget.lat,
+          lon: pendingPortTarget.lon,
+        });
+        placingPort = false;
+        pendingPortTarget = null;
+        // Auto-enable trade view so the player sees the result
+        if (!viewController.isEnabled('trade')) {
+          viewController.toggle('trade');
+        }
+        notifications.success('Oil Port placed — trade routes recalculating');
+        requestRender();
+      } else if (awaitingDestination && pendingRoute && selectedFleetId) {
         confirmNavalRoute();
       } else if (pendingMissionPlan && pendingAircraft && pendingAirHomeBase) {
         confirmAirRoute();
@@ -1255,6 +1654,16 @@ export async function createApplication({
       // Trim targets if count was reduced below current targets
       trimTargetsToCount();
       chrome.setWarheadCount(missileOverlay.getStrikeCount());
+    } else if (key === 'w' && isStrike) {
+      // Cycle warhead type
+      const warheads = getCompatibleWarheads(selectedMissileType);
+      if (warheads.length > 1) {
+        const currentIndex = warheads.findIndex((w) => w.id === selectedWarheadId);
+        const nextIndex = (currentIndex + 1) % warheads.length;
+        selectedWarheadId = warheads[nextIndex].id;
+        chrome.setWarheadLabel(warheads[nextIndex].label);
+        requestRender();
+      }
     } else if (key === ']' && isStrike) {
       missileOverlay.adjustStrikeCount(10);
       chrome.setWarheadCount(missileOverlay.getStrikeCount());
@@ -1274,6 +1683,10 @@ export async function createApplication({
       toggleContextView();
     } else if (key === '6') {
       toggleDefenseView();
+    } else if (key === '7') {
+      toggleEconomyView();
+    } else if (key === '8') {
+      toggleTradeView();
     } else if (key === '0') {
       sceneContext.resetView();
       requestRender();
@@ -1552,6 +1965,17 @@ export async function createApplication({
     requestRender();
   }
 
+  function toggleEconomyView() {
+    const enabled = viewController.toggle('economy');
+    missileOverlay.setOilFieldsVisible(enabled);
+    requestRender();
+  }
+
+  function toggleTradeView() {
+    viewController.toggle('trade');
+    requestRender();
+  }
+
   function enterStrikeMode() {
     setRadarMode('off');
     closeAllPopups();
@@ -1626,6 +2050,13 @@ export async function createApplication({
     } else if (type === 'squadron') {
       const mission = airSimulation.getActiveMissions().find((m) => m.id === id);
       hud.trackSquadron(id, mission?.name);
+    } else if (type === 'oilfield') {
+      const field = missileOverlay.pickOilFieldByName(id);
+      hud.trackOilField(id, field);
+    } else if (type === 'reserve') {
+      hud.trackReserve(id, oilSimulation);
+    } else if (type === 'port') {
+      hud.trackPort(id, tradeSimulation);
     }
   }
 
@@ -1768,8 +2199,23 @@ export async function createApplication({
     }
   }
 
-  function launchSingleMissile({ launchSite, target }) {
-    missileFlights.launch({ launchSite, target });
+  function launchSingleMissile({ launchSite, target, missileTypeId, warheadId, mirvTargets }) {
+    missileFlights.launch({ launchSite, target, missileTypeId, warheadId, mirvTargets });
+  }
+
+  function formatBarrels(bbl) {
+    if (bbl >= 1e9) return `${(bbl / 1e9).toFixed(1)}B bbl`;
+    if (bbl >= 1e6) return `${(bbl / 1e6).toFixed(1)}M bbl`;
+    if (bbl >= 1e3) return `${Math.round(bbl / 1000)}K bbl`;
+    return `${Math.round(bbl)} bbl`;
+  }
+
+  function formatBpd(bpd) {
+    const abs = Math.abs(bpd);
+    const sign = bpd < 0 ? '-' : '';
+    if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(1)}M bpd`;
+    if (abs >= 1e3) return `${sign}${Math.round(abs / 1000)}K bpd`;
+    return `${sign}${Math.round(abs)} bpd`;
   }
 
   function latLonToWorld(lat, lon) {
@@ -1914,6 +2360,7 @@ export async function createApplication({
 
     if (activeCountryIso3) {
       installationStore.setActiveCountry(activeCountryIso3);
+      tradeSimulation.setActiveCountry(activeCountryIso3);
     }
     missileOverlay.setGodView(godView);
     missileOverlay.setPreviewCountry(session.started ? null : activeCountryIso3);
@@ -1979,6 +2426,26 @@ export async function createApplication({
     missileOverlay.adjustStrikeCount(-1);
     trimTargetsToCount();
     chrome.setWarheadCount(missileOverlay.getStrikeCount());
+    requestRender();
+  });
+  const detachMissileType = chrome.onSelectMissileType((typeId) => {
+    selectedMissileType = typeId;
+    const missileType = getMissileType(typeId);
+    if (missileType) {
+      selectedWarheadId = missileType.defaultWarhead;
+      const warheads = getCompatibleWarheads(typeId);
+      const wh = warheads.find((w) => w.id === selectedWarheadId);
+      chrome.setWarheadLabel(wh?.label ?? selectedWarheadId);
+    }
+    requestRender();
+  });
+  const detachWarheadCycle = chrome.onCycleWarhead(() => {
+    const warheads = getCompatibleWarheads(selectedMissileType);
+    if (warheads.length <= 1) return;
+    const currentIndex = warheads.findIndex((w) => w.id === selectedWarheadId);
+    const nextIndex = (currentIndex + 1) % warheads.length;
+    selectedWarheadId = warheads[nextIndex].id;
+    chrome.setWarheadLabel(warheads[nextIndex].label);
     requestRender();
   });
   const detachFleetDeploy = fleetBuilder.onDeploy(({ baseSite, ships }) => {
@@ -2103,6 +2570,12 @@ export async function createApplication({
   const detachViewDefense = chrome.onToggleViewDefense(() => {
     toggleDefenseView();
   });
+  const detachViewEconomy = chrome.onToggleViewEconomy(() => {
+    toggleEconomyView();
+  });
+  const detachViewTrade = chrome.onToggleViewTrade(() => {
+    toggleTradeView();
+  });
   const detachReset = chrome.onResetView(() => {
     sceneContext.resetView();
     requestRender();
@@ -2129,6 +2602,8 @@ export async function createApplication({
       detachSiteFilter();
       detachWarheadIncrease();
       detachWarheadDecrease();
+      detachMissileType();
+      detachWarheadCycle();
       detachFleetDeploy();
       detachFleetSetRoute();
       detachFleetConfirmRoute();
@@ -2147,11 +2622,14 @@ export async function createApplication({
       detachViewBases();
       detachViewContext();
       detachViewDefense();
+      detachViewEconomy();
+      detachViewTrade();
       detachReset();
       detachSession();
       fleetBuilder.dispose();
       fleetAction.dispose();
       fleetOverlay.dispose();
+      tradeOverlay.dispose();
       squadronBuilder.dispose();
       squadronAction.dispose();
       squadronOverlay.dispose();

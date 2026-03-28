@@ -101,6 +101,26 @@ export function createMilitaryInstallationStore({ window, requestRender }) {
       const selected = scored.slice(0, count).map((entry) => entry.site);
       return selected;
     },
+    selectLaunchSites({ iso3, targetLat, targetLon, count, categories }) {
+      const countryAll = sitesByCountry[iso3] ?? [];
+      const available = countryAll.filter(
+        (site) => categories.includes(site.category) && !spentSiloIds.has(site.id),
+      );
+      if (available.length === 0) return [];
+
+      const scored = available.map((site) => ({
+        site,
+        distance: haversineDistance(site.latitude, site.longitude, targetLat, targetLon),
+      }));
+      scored.sort((a, b) => a.distance - b.distance);
+      return scored.slice(0, count).map((entry) => entry.site);
+    },
+    getAvailableSiteCount(iso3, categories) {
+      const countryAll = sitesByCountry[iso3] ?? [];
+      return countryAll.filter(
+        (site) => categories.includes(site.category) && !spentSiloIds.has(site.id),
+      ).length;
+    },
     resetSpentSilos() {
       spentSiloIds.clear();
       requestRender?.();

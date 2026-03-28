@@ -1,7 +1,26 @@
 import * as THREE from 'three';
 import { haversineDistanceKm, latLonToVector3, applyEarthRotation, vector3ToLatLon } from '../world/geo/geoMath.js';
 import { BOOST_PHASE_MAX_SECONDS, EARTH_RADIUS_KM } from '../game/data/radarCatalog.js';
+import { getMissileType } from '../game/data/munitionCatalog.js';
 import { solveLambert } from './orbitalMath.js';
+
+// Radar detection range scales with target RCS per the radar equation:
+//   R_detect = R_base × (RCS / RCS_ref)^(1/4)
+// where RCS_ref = 1.0 m² (calibration target — ICBM booster stack)
+const RCS_REFERENCE_M2 = 1.0;
+
+function computeEffectiveRadarRange(baseCoverageKm, rcsM2) {
+  if (rcsM2 <= 0) return 0;
+  return baseCoverageKm * Math.pow(rcsM2 / RCS_REFERENCE_M2, 0.25);
+}
+
+// Radar horizon distance from radar to target at altitude (km)
+// Both the radar (at ground level ~30m antenna height) and the target
+// contribute to the line-of-sight distance.
+function computeRadarHorizonKm(targetAltKm, radarHeightKm = 0.03) {
+  return Math.sqrt(2 * EARTH_RADIUS_KM * radarHeightKm)
+       + Math.sqrt(2 * EARTH_RADIUS_KM * Math.max(targetAltKm, 0));
+}
 
 export function createMissileDefenseSimulation({ worldConfig, simulationConfig, getEarthRotationRadians, radarSimulation }) {
   const earthRadiusKm = EARTH_RADIUS_KM;
@@ -135,13 +154,16 @@ export function createMissileDefenseSimulation({ worldConfig, simulationConfig, 
     let radarTracked = false;
     let nearestRadarDist = Infinity;
 
-    // SBIRS satellite detection: IR sensors detect the bright rocket plume
-    // during BOOST PHASE ONLY. Once engines cut off, the missile body cools
-    // rapidly in vacuum — SBIRS loses the target within seconds of burnout.
-    // SBIRS provides launch detection + rough trajectory estimate, NOT a
-    // precision midcourse track. Ground radar must independently acquire
-    // the warhead for fire-control quality tracking.
-    if (missile.phase === 'boost') {
+    // SBIRS satellite detection: IR sensors detect the bright rocket plume.
+    // - ICBMs: visible during entire boost phase (60-180s of bright exhaust)
+    // - Cruise missiles: visible only during brief booster burn (4-6s), then
+    //   the small turbofan/ramjet plume is too dim for space-based IR sensors
+    // - Hypersonics: visible during boost (30-90s)
+    // After booster burnout, SBIRS loses the target — ground radar must
+    // independently acquire for fire-control quality tracking.
+    const hasVisiblePlume = missile.phase === 'boost'
+      || (missile.phase === 'booster' && missile.missileType?.startsWith('cruise'));
+    if (hasVisiblePlume) {
       for (const satellite of radarSnapshot.satellites) {
         if (!satellite.operational) continue;
         const satGT = computeGroundTrack(satellite.position);
@@ -197,20 +219,29 @@ export function createMissileDefenseSimulation({ worldConfig, simulationConfig, 
       }
     }
 
-    // Ground radar detection (line-of-sight)
+    // Ground radar detection — factors in RCS and radar horizon
+    // Smaller RCS = shorter effective detection range (radar equation)
+    // Lower altitude = closer radar horizon (Earth curvature)
+    const missileRCS = getMissileRCS(missile);
+    const horizonKm = computeRadarHorizonKm(missileAltKm);
+
     for (const radar of radarSnapshot.groundRadars) {
       const radarPos = { lat: radar.latitude, lon: radar.longitude };
       const distKm = haversineDistanceKm(missileGroundTrack, radarPos);
-      if (distKm > radar.coverageKm) continue;
-      const horizonDistKm = Math.sqrt(2 * earthRadiusKm * Math.max(missileAltKm, 0));
-      if (distKm < horizonDistKm) {
-        radarTracked = true;
-        threat.detectedByIds.add(radar.id);
-        if (distKm < nearestRadarDist) {
-          nearestRadarDist = distKm;
-          threat.nearestRadarLat = radar.latitude;
-          threat.nearestRadarLon = radar.longitude;
-        }
+
+      // Effective detection range: scaled by RCS
+      const effectiveRange = computeEffectiveRadarRange(radar.coverageKm, missileRCS);
+      if (distKm > effectiveRange) continue;
+
+      // Line-of-sight check: must be above radar horizon
+      if (distKm > horizonKm) continue;
+
+      radarTracked = true;
+      threat.detectedByIds.add(radar.id);
+      if (distKm < nearestRadarDist) {
+        nearestRadarDist = distKm;
+        threat.nearestRadarLat = radar.latitude;
+        threat.nearestRadarLon = radar.longitude;
       }
     }
 
@@ -838,5 +869,30 @@ export function createMissileDefenseSimulation({ worldConfig, simulationConfig, 
 
   function computeGroundTrack(position) {
     return vector3ToLatLon(position.clone().normalize());
+  }
+
+  // Get the radar cross section for a missile based on its type.
+  // During boost phase, the entire booster stack is visible (much larger RCS).
+  // After burnout, only the warhead/glider is visible (smaller RCS).
+  function getMissileRCS(missile) {
+    const phase = missile.phase;
+    const typeId = missile.missileType;
+
+    // During boost, the entire rocket stack is visible — large RCS
+    if (phase === 'boost' || phase === 'booster') {
+      return 5.0; // multi-meter booster stack
+    }
+
+    // Look up the catalog RCS for this missile type
+    const typeData = typeId ? getMissileType(typeId) : null;
+    if (typeData?.radarCrossSectionM2) {
+      return typeData.radarCrossSectionM2;
+    }
+
+    // RV (MIRV reentry vehicle) — very small
+    if (typeId === 'rv') return 0.01;
+
+    // Default: ICBM RV
+    return 0.05;
   }
 }

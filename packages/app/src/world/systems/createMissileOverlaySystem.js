@@ -63,8 +63,40 @@ export function createMissileOverlaySystem({
   let previewCountryIso3 = null;
   let showAllBases = false;
   let selectedBase = null;
+  let showOilFields = false;
+  let oilFields = [];
+  let oilIconOwn = null;    // blue-green for own fields
+  let oilIconEnemy = null;  // orange for enemy/neutral fields
+  let oilReserveIcon = null;
+  let oilSimulation = null;
+  const oilHitRegions = [];
 
   installationStore.ensureLoaded();
+
+  // Load oil field data and icons
+  fetch('/data/oil-production.json')
+    .then((r) => r.json())
+    .then((data) => { oilFields = data.oilFields ?? []; })
+    .catch(() => {});
+
+  function loadTintedSvg(src, color, cb) {
+    const img = new Image();
+    img.onload = () => {
+      const s = 64;
+      const off = document.createElement('canvas');
+      off.width = s; off.height = s;
+      const c = off.getContext('2d');
+      c.drawImage(img, 0, 0, s, s);
+      c.globalCompositeOperation = 'source-in';
+      c.fillStyle = color;
+      c.fillRect(0, 0, s, s);
+      cb(off);
+    };
+    img.src = src;
+  }
+  loadTintedSvg('/assets/manufactoring/raw-resources/oil-producer.svg', 'rgba(100, 210, 160, 0.92)', (i) => { oilIconOwn = i; });
+  loadTintedSvg('/assets/manufactoring/raw-resources/oil-producer.svg', 'rgba(255, 179, 71, 0.92)', (i) => { oilIconEnemy = i; });
+  loadTintedSvg('/assets/manufactoring/raw-resources/oil-reserve.svg', 'rgba(100, 180, 255, 0.92)', (i) => { oilReserveIcon = i; });
 
   return {
     setMode(nextMode) {
@@ -92,6 +124,32 @@ export function createMissileOverlaySystem({
     setSelectedBase(site) {
       selectedBase = site ?? null;
       requestRender();
+    },
+    setOilFieldsVisible(enabled) {
+      showOilFields = Boolean(enabled);
+      requestRender();
+    },
+    setOilSimulation(sim) {
+      oilSimulation = sim;
+    },
+    pickOilFieldByName(name) {
+      return oilFields.find((f) => f.name === name) ?? null;
+    },
+    pickOilField(clientX, clientY) {
+      if (!showOilFields) return null;
+      const rect = renderer.domElement.getBoundingClientRect();
+      const cx = clientX - rect.left;
+      const cy = clientY - rect.top;
+      for (let i = oilHitRegions.length - 1; i >= 0; i--) {
+        const r = oilHitRegions[i];
+        const dx = cx - r.x;
+        const dy = cy - r.y;
+        if (dx * dx + dy * dy <= r.radius * r.radius) {
+          if (r.facility) return { type: 'facility', data: r.facility };
+          if (r.field) return { type: 'field', data: r.field };
+        }
+      }
+      return null;
     },
     getStrikeCount() {
       return strikeCount;
@@ -135,6 +193,10 @@ export function createMissileOverlaySystem({
       flights = [],
       radar = { mode: 'off' },
       showFlightMarkers = true,
+      playerCountry = null,
+      pendingReserve = null,
+      missileTypeLabel = null,
+      warheadLabel = null,
     }) {
       syncCanvasSize({
         canvas,
@@ -295,6 +357,92 @@ export function createMissileOverlaySystem({
         size: 9,
       });
 
+      // Oil field icons — own fields green, others orange
+      oilHitRegions.length = 0;
+      if (showOilFields && oilFields.length > 0) {
+        const vw = canvasWidth / dpr;
+        const vh = canvasHeight / dpr;
+        const showLabels = altitudeKm < 3000;
+        const iconSize = altitudeKm > 6000 ? 8 : altitudeKm > 3000 ? 12 : 16;
+
+        for (const field of oilFields) {
+          if (!projectPoint({ lat: field.lat, lon: field.lon, ...projArgs })) continue;
+          const x = (projected.x + 1) * 0.5 * vw;
+          const y = (1 - projected.y) * 0.5 * vh;
+          const half = iconSize / 2;
+          const isOwn = playerCountry && field.country === playerCountry;
+          const icon = isOwn ? oilIconOwn : oilIconEnemy;
+          if (icon) {
+            context.drawImage(icon, x - half, y - half, iconSize, iconSize);
+          }
+          oilHitRegions.push({ x, y, radius: Math.max(half + 4, 10), field });
+          if (showLabels) {
+            const textColor = isOwn ? 'rgba(100, 210, 160, 0.7)' : 'rgba(255, 179, 71, 0.7)';
+            const subColor = isOwn ? 'rgba(100, 210, 160, 0.45)' : 'rgba(255, 179, 71, 0.45)';
+            context.fillStyle = textColor;
+            context.font = '7px "Space Grotesk", monospace';
+            context.textAlign = 'center';
+            context.fillText(field.name, x, y + iconSize / 2 + 10);
+            const bpd = field.currentBpd;
+            const label = bpd >= 1e6 ? `${(bpd / 1e6).toFixed(1)}M bpd` : `${Math.round(bpd / 1000)}K bpd`;
+            context.font = '6px "Space Grotesk", monospace';
+            context.fillStyle = subColor;
+            context.fillText(label, x, y + iconSize / 2 + 19);
+            context.textAlign = 'left';
+          }
+        }
+
+        // Oil reserve facilities
+        if (oilSimulation && oilReserveIcon) {
+          const facilities = oilSimulation.getReserveFacilities();
+          for (const fac of facilities) {
+            if (!projectPoint({ lat: fac.lat, lon: fac.lon, ...projArgs })) continue;
+            const x = (projected.x + 1) * 0.5 * vw;
+            const y = (1 - projected.y) * 0.5 * vh;
+            const rs = iconSize + 2;
+            const rh = rs / 2;
+            context.drawImage(oilReserveIcon, x - rh, y - rh, rs, rs);
+            oilHitRegions.push({ x, y, radius: Math.max(rh + 4, 12), facility: fac });
+            if (showLabels) {
+              context.fillStyle = 'rgba(100, 180, 255, 0.7)';
+              context.font = '7px "Space Grotesk", monospace';
+              context.textAlign = 'center';
+              context.fillText('Strategic Reserve', x, y + rs / 2 + 10);
+              context.textAlign = 'left';
+            }
+          }
+        }
+      }
+
+      // Pending reserve placement marker
+      if (pendingReserve && oilReserveIcon) {
+        const vw = canvasWidth / dpr;
+        const vh = canvasHeight / dpr;
+        if (projectPoint({ lat: pendingReserve.lat, lon: pendingReserve.lon, ...projArgs })) {
+          const x = (projected.x + 1) * 0.5 * vw;
+          const y = (1 - projected.y) * 0.5 * vh;
+          const s = 22;
+          const h = s / 2;
+          // Pulsing ring
+          context.beginPath();
+          context.arc(x, y, h + 4, 0, Math.PI * 2);
+          context.strokeStyle = 'rgba(100, 180, 255, 0.6)';
+          context.lineWidth = 1.5;
+          context.stroke();
+          // Icon
+          context.drawImage(oilReserveIcon, x - h, y - h, s, s);
+          // Label
+          context.fillStyle = 'rgba(100, 180, 255, 0.85)';
+          context.font = '9px "Space Grotesk", monospace';
+          context.textAlign = 'center';
+          context.fillText('STRATEGIC RESERVE', x, y + h + 14);
+          context.fillStyle = 'rgba(100, 180, 255, 0.55)';
+          context.font = '7px "Space Grotesk", monospace';
+          context.fillText('Enter to confirm | Esc to cancel', x, y + h + 24);
+          context.textAlign = 'left';
+        }
+      }
+
       drawStatusBar({
         context,
         viewportWidth: canvasWidth / dpr,
@@ -309,6 +457,8 @@ export function createMissileOverlaySystem({
         radar,
         selectedBase,
         showAllBases,
+        missileTypeLabel,
+        warheadLabel,
       });
       context.restore();
     },
@@ -823,6 +973,8 @@ function drawStatusBar({
   radar,
   selectedBase,
   showAllBases,
+  missileTypeLabel,
+  warheadLabel,
 }) {
   const activeCountry = installationStore.getActiveCountry();
   const activeCategory = installationStore.getActiveCategory();
@@ -915,13 +1067,15 @@ function drawStatusBar({
       lines.push('Press M for strikes, N for naval, or R for radar setup.');
     }
   } else if (mode === 'strike') {
-    lines.push(`STRIKE PLANNING | ${activeCountry} | ${categoryLabel} | Silos: ${availableSilos}`);
+    const typeStr = missileTypeLabel ? ` | ${missileTypeLabel}` : '';
+    const whStr = warheadLabel ? ` [${warheadLabel}]` : '';
+    lines.push(`STRIKE PLANNING | ${activeCountry}${typeStr}${whStr}`);
     if (targetsPlaced > 0) {
       lines.push(
         `Targets: ${targetsPlaced}/${strikeCount} placed | Click to add more | Enter to launch | Backspace to undo`,
       );
     } else {
-      lines.push(`Warheads: ${strikeCount} | Click globe to place targets (1 per warhead)`);
+      lines.push(`Warheads: ${strikeCount} | Click globe to place targets | W cycles warhead`);
     }
   } else if (mode === 'strikeConfirm') {
     lines.push(

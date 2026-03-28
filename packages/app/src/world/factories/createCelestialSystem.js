@@ -3,6 +3,10 @@ import { loadPlanetTextureSet } from '../../rendering/textures/loadPlanetTexture
 import { createFallbackTextureSet } from '../../rendering/textures/createFallbackTextureSet.js';
 import { createEarthSystem } from '../entities/createEarthSystem.js';
 import { createMissile } from '../entities/createMissile.js';
+import { createCruiseMissile } from '../entities/createCruiseMissile.js';
+import { createSupersonicCruiseMissile } from '../entities/createSupersonicCruiseMissile.js';
+import { createHypersonicMissile } from '../entities/createHypersonicMissile.js';
+import { createScramjetMissile } from '../entities/createScramjetMissile.js';
 import { createCarrier, createCruiser, createSubmarine } from '../entities/createNavalUnit.js';
 import { latLonToVector3, buildSurfaceFrame } from '../geo/geoMath.js';
 
@@ -195,6 +199,7 @@ export async function createCelestialSystem({
         const isEnemy = playerCountry && snapshot.launchSite?.countryIso3 !== playerCountry;
         const actor = ensureMissileActor({
           id: snapshot.id,
+          missileType: snapshot.missileType,
           missileActors,
           scene,
           earthGroup: earthSystem.group,
@@ -585,8 +590,96 @@ export async function createCelestialSystem({
   };
 }
 
+function createMissileModelForType(missileType) {
+  if (missileType === 'cruise_subsonic') return createCruiseMissile();
+  if (missileType === 'cruise_supersonic') return createSupersonicCruiseMissile();
+  if (missileType === 'hypersonic_glide') return createHypersonicMissile();
+  if (missileType === 'hypersonic_cruise') return createScramjetMissile();
+  if (missileType === 'rv') return createReentryVehicleModel();
+  return createMissile();
+}
+
+// Standalone RV model for MIRVed warheads — just the conical RV with reentry glow
+function createReentryVehicleModel() {
+  const root = new THREE.Group();
+  const rvLength = 0.000011;
+  const rvRadius = 0.0000022;
+
+  const ablativeMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.7, metalness: 0.15 });
+  const metalMat = new THREE.MeshStandardMaterial({ color: 0x8b98ab, roughness: 0.36, metalness: 0.62 });
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0xff9d4d, transparent: true, opacity: 0, depthWrite: false });
+
+  // RV cone (triangular cross-section like the ICBM warhead)
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(rvRadius, rvLength * 0.82, 3, 1, false),
+    ablativeMat,
+  );
+  cone.rotation.y = Math.PI / 6;
+  root.add(cone);
+
+  // Nose tip
+  const tip = new THREE.Mesh(
+    new THREE.ConeGeometry(rvRadius * 0.25, rvLength * 0.2, 3, 1, false),
+    metalMat,
+  );
+  tip.rotation.y = Math.PI / 6;
+  tip.position.y = rvLength * 0.42;
+  root.add(tip);
+
+  // Reentry heating glow
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(rvRadius * 1.8, 10, 10),
+    glowMat,
+  );
+  glow.position.y = -rvLength * 0.15;
+  root.add(glow);
+
+  // Plasma trail (elongated behind RV)
+  const trail = new THREE.Mesh(
+    new THREE.ConeGeometry(rvRadius * 0.8, rvLength * 1.5, 8, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xff6622, transparent: true, opacity: 0, depthWrite: false }),
+  );
+  trail.rotation.x = Math.PI;
+  trail.position.y = -rvLength * 0.5;
+  root.add(trail);
+
+  root.visible = false;
+
+  return {
+    object3d: root,
+    forwardAxis: new THREE.Vector3(0, 1, 0),
+    nativeLength: rvLength,
+    setVisualState(snapshot, elapsedSeconds = 0) {
+      const phase = snapshot?.phase ?? 'idle';
+      root.visible = snapshot?.visible ?? false;
+
+      // Reentry glow: brilliant during terminal phase (Mach 15-23)
+      const isReentry = phase === 'terminal' || phase === 'impact';
+      const speedKmS = snapshot?.speedKmS ?? 0;
+      const machApprox = speedKmS * 1000 / 343;
+
+      if (isReentry && machApprox > 5) {
+        const intensity = Math.min((machApprox - 5) / 18, 1);
+        glow.material.opacity = intensity * 0.5;
+        glow.material.color.setHex(machApprox > 15 ? 0xffeedd : 0xff9d4d);
+
+        // Plasma trail — long and bright during reentry
+        trail.material.opacity = intensity * 0.35;
+        trail.visible = true;
+        const trailLen = THREE.MathUtils.lerp(1, 3, intensity);
+        trail.scale.set(1, trailLen, 1);
+      } else {
+        glow.material.opacity = 0;
+        trail.material.opacity = 0;
+        trail.visible = false;
+      }
+    },
+  };
+}
+
 function ensureMissileActor({
   id,
+  missileType,
   missileActors,
   scene,
   earthGroup,
@@ -599,12 +692,22 @@ function ensureMissileActor({
     return actor;
   }
 
-  const missile = createMissile();
+  const missile = createMissileModelForType(missileType);
   scene.add(missile.object3d);
 
-  const pathColor = isEnemy ? 0xff4444 : renderConfig.missile.actualPathColor;
+  // Trail colors by missile type — distinct colors aid situational awareness
+  const TRAIL_COLORS = {
+    icbm:              { actual: 0xffbb74, predicted: 0x74dcff },  // orange / cyan
+    rv:                { actual: 0xff7744, predicted: 0xff5522 },  // bright orange-red (reentry)
+    cruise_subsonic:   { actual: 0x66dd88, predicted: 0x44aa66 },  // green (stealthy)
+    cruise_supersonic: { actual: 0xff66aa, predicted: 0xcc4488 },  // magenta (aggressive)
+    hypersonic_glide:  { actual: 0xffaa33, predicted: 0xcc8822 },  // amber (hot)
+    hypersonic_cruise: { actual: 0xff6644, predicted: 0xcc4422 },  // red-orange
+  };
+  const trailPreset = TRAIL_COLORS[missileType] ?? TRAIL_COLORS.icbm;
+  const pathColor = isEnemy ? 0xff4444 : trailPreset.actual;
   const pathOpacity = isEnemy ? 0.6 : renderConfig.missile.actualPathOpacity;
-  const predColor = isEnemy ? 0xff4444 : renderConfig.missile.predictedPathColor;
+  const predColor = isEnemy ? 0xff4444 : trailPreset.predicted;
   const predOpacity = isEnemy ? 0.25 : renderConfig.missile.predictedPathOpacity;
 
   const actualPath = createTrajectoryLine({
@@ -650,9 +753,22 @@ function updateMissileActor({
   if (visible) {
     const radial = snapshot.position.clone().normalize();
     const cameraDistance = camera ? camera.position.distanceTo(snapshot.position) : 20;
-    const targetVisualLength = THREE.MathUtils.clamp(cameraDistance * 0.018, 0.045, 0.22);
+    // Visual size varies by missile type — all use the same formula
+    // but with different multipliers so they appear proportional on screen.
+    // The key: targetVisualLength is the desired screen-space size,
+    // and we divide by nativeLength to get the uniform scale factor.
+    // So missiles with smaller native geometry DON'T get blown up.
+    const mtype = snapshot.missileType;
+    const isCruise = mtype?.startsWith('cruise');
+    const isHypersonic = mtype?.startsWith('hypersonic');
+    const isRV = mtype === 'rv';
+    // All non-ICBM types use the same base sizing to avoid inflation
+    const sizeMultiplier = 0.012;
+    const sizeMin = isRV ? 0.02 : isCruise ? 0.025 : 0.035;
+    const sizeMax = isRV ? 0.06 : isCruise ? 0.10 : isHypersonic ? 0.14 : 0.22;
+    const targetVisualLength = THREE.MathUtils.clamp(cameraDistance * sizeMultiplier, sizeMin, sizeMax);
     const visualScale = targetVisualLength / actor.missile.nativeLength;
-    const radialLift = Math.max(targetVisualLength * 0.24, 0.014);
+    const radialLift = Math.max(targetVisualLength * 0.18, isCruise ? 0.002 : isRV ? 0.004 : 0.010);
     actor.missile.object3d.scale.setScalar(visualScale);
     actor.missile.object3d.position.copy(snapshot.position).addScaledVector(radial, radialLift);
     const direction =
@@ -667,38 +783,17 @@ function updateMissileActor({
     );
   }
 
-  if (
-    visible &&
-    actor.previousPhase === 'boost' &&
-    snapshot.phase === 'midcourse' &&
-    actor.previousStageIndex === 2
-  ) {
-    spawnSpentStage({
-      stageKey: 'stage3',
-      snapshot,
-      scene,
-      spentStages,
-      missile: actor.missile,
-      tmpQuaternion,
-    });
-  }
-  if (
-    visible &&
-    actor.previousStageIndex !== null &&
-    snapshot.stageIndex !== null &&
-    snapshot.stageIndex > actor.previousStageIndex
-  ) {
-    const stageKey =
-      actor.previousStageIndex === 0
-        ? 'stage1'
-        : actor.previousStageIndex === 1
-          ? 'stage2'
-          : actor.previousStageIndex === 2
-            ? 'stage3'
-            : null;
-    if (stageKey) {
+  // Stage separation effects — only for ballistic ICBMs (they have multi-stage rockets)
+  const isBallisticMissile = !snapshot.missileType || snapshot.missileType === 'icbm';
+  if (isBallisticMissile) {
+    if (
+      visible &&
+      actor.previousPhase === 'boost' &&
+      snapshot.phase === 'midcourse' &&
+      actor.previousStageIndex === 2
+    ) {
       spawnSpentStage({
-        stageKey,
+        stageKey: 'stage3',
         snapshot,
         scene,
         spentStages,
@@ -706,17 +801,52 @@ function updateMissileActor({
         tmpQuaternion,
       });
     }
-    if (actor.previousStageIndex === 1 && snapshot.stageIndex === 2) {
+    if (
+      visible &&
+      actor.previousStageIndex !== null &&
+      snapshot.stageIndex !== null &&
+      snapshot.stageIndex > actor.previousStageIndex
+    ) {
+      const stageKey =
+        actor.previousStageIndex === 0
+          ? 'stage1'
+          : actor.previousStageIndex === 1
+            ? 'stage2'
+            : actor.previousStageIndex === 2
+              ? 'stage3'
+              : null;
+      if (stageKey) {
+        spawnSpentStage({
+          stageKey,
+          snapshot,
+          scene,
+          spentStages,
+          missile: actor.missile,
+          tmpQuaternion,
+        });
+      }
+      if (actor.previousStageIndex === 1 && snapshot.stageIndex === 2) {
+        spawnSpentStage({
+          stageKey: 'fairingLeft',
+          snapshot,
+          scene,
+          spentStages,
+          missile: actor.missile,
+          tmpQuaternion,
+        });
+        spawnSpentStage({
+          stageKey: 'fairingRight',
+          snapshot,
+          scene,
+          spentStages,
+          missile: actor.missile,
+          tmpQuaternion,
+        });
+      }
+    }
+    if (visible && actor.previousPhase !== 'terminal' && snapshot.phase === 'terminal') {
       spawnSpentStage({
-        stageKey: 'fairingLeft',
-        snapshot,
-        scene,
-        spentStages,
-        missile: actor.missile,
-        tmpQuaternion,
-      });
-      spawnSpentStage({
-        stageKey: 'fairingRight',
+        stageKey: 'bus',
         snapshot,
         scene,
         spentStages,
@@ -724,16 +854,6 @@ function updateMissileActor({
         tmpQuaternion,
       });
     }
-  }
-  if (visible && actor.previousPhase !== 'terminal' && snapshot.phase === 'terminal') {
-    spawnSpentStage({
-      stageKey: 'bus',
-      snapshot,
-      scene,
-      spentStages,
-      missile: actor.missile,
-      tmpQuaternion,
-    });
   }
 
   actor.previousStageIndex = snapshot?.stageIndex ?? null;

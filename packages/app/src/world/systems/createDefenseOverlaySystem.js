@@ -22,7 +22,7 @@ export function createDefenseOverlaySystem({
   canvas.className = 'defense-overlay';
   canvas.setAttribute('aria-hidden', 'true');
   canvas.style.cssText =
-    'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;';
+    'position:absolute;top:0;left:0;pointer-events:none;z-index:4;';
   mountNode.parentElement.appendChild(canvas);
   const ctx = canvas.getContext('2d');
 
@@ -98,7 +98,53 @@ export function createDefenseOverlaySystem({
       group.add(outerGlow);
 
       scene.add(group);
-      explosions.push({ group, flash, ring, outerGlow, birthTime: performance.now() / 1000 });
+      explosions.push({ group, flash, ring, outerGlow, birthTime: performance.now() / 1000, type: 'intercept' });
+    },
+    spawnGroundImpact(position, warheadId = 'nuclear_300kt') {
+      // Warhead-specific ground impact effects.
+      // Each category gets a distinct visual signature.
+      const category = getWarheadCategory(warheadId);
+      const group = new THREE.Group();
+      group.position.copy(position);
+      const radial = position.clone().normalize();
+      const up = new THREE.Vector3(0, 1, 0);
+      const quat = new THREE.Quaternion().setFromUnitVectors(up, radial);
+      const now = performance.now() / 1000;
+
+      if (category === 'nuclear') {
+        const yieldKt = getWarheadYield(warheadId);
+        const s = Math.pow(yieldKt / 300, 1 / 3);
+        const exp = buildNuclearExplosion(group, s, quat, radial);
+        scene.add(group);
+        explosions.push({ ...exp, group, birthTime: now, type: 'nuclear', yieldScale: s });
+
+      } else if (category === 'thermobaric') {
+        const exp = buildThermobaricExplosion(group, quat, radial);
+        scene.add(group);
+        explosions.push({ ...exp, group, birthTime: now, type: 'thermobaric' });
+
+      } else if (category === 'emp') {
+        const exp = buildEmpExplosion(group, quat, radial);
+        scene.add(group);
+        explosions.push({ ...exp, group, birthTime: now, type: 'emp' });
+
+      } else if (warheadId === 'cluster') {
+        // Cluster: multiple small impacts spread over footprint
+        const exp = buildClusterImpact(group, position, radial, quat);
+        scene.add(group);
+        explosions.push({ ...exp, group, birthTime: now, type: 'cluster' });
+
+      } else if (warheadId === 'conventional_penetrator') {
+        const exp = buildBunkerBusterExplosion(group, quat, radial);
+        scene.add(group);
+        explosions.push({ ...exp, group, birthTime: now, type: 'bunkerbuster' });
+
+      } else {
+        // Default: conventional HE
+        const exp = buildConventionalExplosion(group, quat, radial);
+        scene.add(group);
+        explosions.push({ ...exp, group, birthTime: now, type: 'conventional' });
+      }
     },
     render({ radarSnapshot, defenseSnapshot, missileSnapshots, elapsedSeconds }) {
       if (!visible) return;
@@ -106,6 +152,7 @@ export function createDefenseOverlaySystem({
       syncCanvasSize();
       const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
 
       // Draw radar icons
       for (const radar of radarSnapshot.groundRadars) {
@@ -315,31 +362,43 @@ export function createDefenseOverlaySystem({
 
       // Update explosions
       const now = performance.now() / 1000;
+      const DURATIONS = {
+        intercept: 2, nuclear: 8, conventional: 1.5,
+        thermobaric: 3, emp: 4, cluster: 3, bunkerbuster: 2.5,
+      };
       for (let i = explosions.length - 1; i >= 0; i--) {
         const exp = explosions[i];
         const age = now - exp.birthTime;
-        const duration = 2.0;
+        const dur = DURATIONS[exp.type] ?? 2;
 
-        if (age > duration) {
+        if (age > dur) {
           exp.group.removeFromParent();
           explosions.splice(i, 1);
           continue;
         }
+        const t = age / dur;
 
-        const t = age / duration;
-        // Flash shrinks and fades
-        const flashScale = 1 + t * 2;
-        exp.flash.scale.setScalar(flashScale);
-        exp.flash.material.opacity = Math.max(0, 1 - t * 2);
-
-        // Ring expands and fades
-        exp.ring.scale.setScalar(1 + t * 6);
-        exp.ring.material.opacity = Math.max(0, 0.7 * (1 - t));
-        exp.ring.lookAt(camera.position);
-
-        // Outer glow expands and fades
-        exp.outerGlow.scale.setScalar(1 + t * 4);
-        exp.outerGlow.material.opacity = Math.max(0, 0.3 * (1 - t * 1.5));
+        if (exp.type === 'intercept') {
+          exp.flash.scale.setScalar(1 + t * 2);
+          exp.flash.material.opacity = Math.max(0, 1 - t * 2);
+          exp.ring.scale.setScalar(1 + t * 6);
+          exp.ring.material.opacity = Math.max(0, 0.7 * (1 - t));
+          exp.ring.lookAt(camera.position);
+          exp.outerGlow.scale.setScalar(1 + t * 4);
+          exp.outerGlow.material.opacity = Math.max(0, 0.3 * (1 - t * 1.5));
+        } else if (exp.type === 'nuclear') {
+          updateNuclearExplosion(exp, t);
+        } else if (exp.type === 'conventional') {
+          updateConventionalExplosion(exp, t);
+        } else if (exp.type === 'thermobaric') {
+          updateThermobaricExplosion(exp, t);
+        } else if (exp.type === 'emp') {
+          updateEmpExplosion(exp, t, camera);
+        } else if (exp.type === 'cluster') {
+          updateClusterImpact(exp, t);
+        } else if (exp.type === 'bunkerbuster') {
+          updateBunkerBusterExplosion(exp, t);
+        }
       }
     },
     dispose() {
@@ -368,6 +427,8 @@ export function createDefenseOverlaySystem({
       canvasHeight = ph;
       canvas.width = pw;
       canvas.height = ph;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
     }
   }
 
@@ -377,10 +438,13 @@ export function createDefenseOverlaySystem({
     worldNormal.copy(localVector).normalize().applyQuaternion(earthGroup.quaternion).normalize();
     toCamera.copy(camera.position).sub(worldPosition).normalize();
 
-    if (worldNormal.dot(toCamera) < 0.06) return null;
+    // Tighter horizon cutoff prevents icons at the limb from jumping wildly.
+    // Points near the edge of the visible hemisphere project to unstable
+    // screen positions — cull them aggressively.
+    if (worldNormal.dot(toCamera) < 0.15) return null;
 
     projected.copy(worldPosition).project(camera);
-    if (projected.z < -1 || projected.z > 1 || Math.abs(projected.x) > 1.1 || Math.abs(projected.y) > 1.1) {
+    if (projected.z < -1 || projected.z > 1 || Math.abs(projected.x) > 1.05 || Math.abs(projected.y) > 1.05) {
       return null;
     }
 
@@ -435,6 +499,287 @@ export function createDefenseOverlaySystem({
     };
     img.src = src;
   }
+}
+
+// ── Warhead category helpers ────────────────────────────────────────
+function getWarheadCategory(warheadId) {
+  const nuclear = ['nuclear_300kt', 'nuclear_800kt', 'nuclear_5kt'];
+  if (nuclear.includes(warheadId)) return 'nuclear';
+  if (warheadId === 'thermobaric') return 'thermobaric';
+  if (warheadId === 'emp') return 'emp';
+  if (warheadId === 'cluster') return 'cluster';
+  return 'conventional';
+}
+
+function getWarheadYield(warheadId) {
+  const yields = { nuclear_300kt: 300, nuclear_800kt: 800, nuclear_5kt: 5, emp: 10 };
+  return yields[warheadId] ?? 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXPLOSION BUILDERS — each returns the meshes needed for its update fn
+// ═══════════════════════════════════════════════════════════════════
+
+function buildNuclearExplosion(group, s, quat, radial) {
+  const mk = (geo, color, opacity) => new THREE.Mesh(geo,
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+
+  const fireball = mk(new THREE.SphereGeometry(0.005 * s, 14, 14), 0xffffff, 1.0);
+  const thermal = mk(new THREE.SphereGeometry(0.012 * s, 12, 12), 0xff6600, 0.65);
+  const shockwave = mk(new THREE.RingGeometry(0.003 * s, 0.01 * s, 28), 0xff9944, 0.7);
+  shockwave.material.side = THREE.DoubleSide;
+  const shockwave2 = mk(new THREE.RingGeometry(0.002 * s, 0.006 * s, 28), 0xffcc66, 0.45);
+  shockwave2.material.side = THREE.DoubleSide;
+  const column = mk(new THREE.CylinderGeometry(0.002 * s, 0.004 * s, 0.025 * s, 10), 0xff4400, 0.3);
+  column.quaternion.copy(quat);
+  column.position.copy(radial).multiplyScalar(0.012 * s);
+  const cap = mk(new THREE.SphereGeometry(0.008 * s, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.5), 0xcc3300, 0.25);
+  cap.quaternion.copy(quat);
+  cap.position.copy(radial).multiplyScalar(0.024 * s);
+  const outerGlow = mk(new THREE.SphereGeometry(0.02 * s, 10, 10), 0xff2200, 0.12);
+
+  group.add(fireball, thermal, shockwave, shockwave2, column, cap, outerGlow);
+  return { fireball, thermal, shockwave, shockwave2, column, cap, outerGlow };
+}
+
+function buildConventionalExplosion(group, quat, radial) {
+  const mk = (geo, color, opacity) => new THREE.Mesh(geo,
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+
+  // Sharp bright flash
+  const flash = mk(new THREE.SphereGeometry(0.002, 10, 10), 0xffcc44, 1.0);
+  // Small debris/smoke cloud (dark)
+  const smoke = mk(new THREE.SphereGeometry(0.004, 8, 8), 0x332211, 0.4);
+  // Ground scorch ring
+  const scorch = mk(new THREE.RingGeometry(0.001, 0.005, 16), 0xff8844, 0.5);
+  scorch.material.side = THREE.DoubleSide;
+
+  group.add(flash, smoke, scorch);
+  return { flash, smoke, scorch };
+}
+
+function buildThermobaricExplosion(group, quat, radial) {
+  const mk = (geo, color, opacity) => new THREE.Mesh(geo,
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+
+  // Large orange fireball (fuel-air)
+  const fireball = mk(new THREE.SphereGeometry(0.006, 12, 12), 0xff7722, 0.8);
+  // Overpressure ring expanding horizontally
+  const pressureRing = mk(new THREE.RingGeometry(0.004, 0.012, 28), 0xffaa44, 0.6);
+  pressureRing.material.side = THREE.DoubleSide;
+  // Secondary fireball (delayed fuel ignition)
+  const secondary = mk(new THREE.SphereGeometry(0.008, 10, 10), 0xff4400, 0.3);
+  // Dark smoke column
+  const smoke = mk(new THREE.CylinderGeometry(0.002, 0.005, 0.015, 8), 0x221100, 0.25);
+  smoke.quaternion.copy(quat);
+  smoke.position.copy(radial).multiplyScalar(0.008);
+
+  group.add(fireball, pressureRing, secondary, smoke);
+  return { fireball, pressureRing, secondary, smoke };
+}
+
+function buildEmpExplosion(group, quat, radial) {
+  const mk = (geo, color, opacity) => new THREE.Mesh(geo,
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+
+  // Brief white flash (small nuclear detonation at altitude)
+  const flash = mk(new THREE.SphereGeometry(0.003, 10, 10), 0xccddff, 0.8);
+  // Expanding electromagnetic pulse ring (blue-white, very large)
+  const pulseRing = mk(new THREE.RingGeometry(0.005, 0.015, 36), 0x4488ff, 0.5);
+  pulseRing.material.side = THREE.DoubleSide;
+  // Secondary pulse ring (wider, fainter)
+  const pulseRing2 = mk(new THREE.RingGeometry(0.003, 0.008, 36), 0x6699ff, 0.3);
+  pulseRing2.material.side = THREE.DoubleSide;
+  // Ionosphere glow
+  const glow = mk(new THREE.SphereGeometry(0.01, 10, 10), 0x2244aa, 0.1);
+
+  group.add(flash, pulseRing, pulseRing2, glow);
+  return { flash, pulseRing, pulseRing2, glow };
+}
+
+function buildClusterImpact(group, position, radial, quat) {
+  // Multiple small submunition impacts spread over a footprint
+  const mk = (geo, color, opacity) => new THREE.Mesh(geo,
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+
+  const submunitions = [];
+  const count = 24;
+  const spreadRadius = 0.003; // ~3 km footprint
+
+  for (let i = 0; i < count; i++) {
+    // Random offset in tangent plane
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * spreadRadius;
+    // Compute tangent vectors
+    const tangent1 = radial.clone().cross(new THREE.Vector3(0, 1, 0)).normalize();
+    const tangent2 = radial.clone().cross(tangent1).normalize();
+    const offset = tangent1.clone().multiplyScalar(Math.cos(angle) * dist)
+      .add(tangent2.clone().multiplyScalar(Math.sin(angle) * dist));
+
+    const flash = mk(new THREE.SphereGeometry(0.0005 + Math.random() * 0.0003, 6, 6), 0xffaa33, 0);
+    flash.position.copy(offset);
+    group.add(flash);
+
+    submunitions.push({
+      mesh: flash,
+      delay: 0.1 + Math.random() * 0.6, // staggered impacts
+      offset,
+    });
+  }
+
+  // Parent casing break-apart flash
+  const parentFlash = mk(new THREE.SphereGeometry(0.002, 8, 8), 0xffcc44, 0.6);
+  group.add(parentFlash);
+
+  return { submunitions, parentFlash };
+}
+
+function buildBunkerBusterExplosion(group, quat, radial) {
+  const mk = (geo, color, opacity) => new THREE.Mesh(geo,
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+
+  // Minimal surface flash (warhead penetrates before detonating)
+  const flash = mk(new THREE.SphereGeometry(0.001, 8, 8), 0xffaa44, 0.4);
+  // Ground heave — delayed bulge
+  const heave = mk(new THREE.SphereGeometry(0.004, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.4), 0x886644, 0);
+  heave.quaternion.copy(quat);
+  // Debris ejection column
+  const debris = mk(new THREE.CylinderGeometry(0.001, 0.003, 0.012, 8), 0x554433, 0);
+  debris.quaternion.copy(quat);
+  debris.position.copy(radial).multiplyScalar(0.006);
+  // Dust ring
+  const dust = mk(new THREE.RingGeometry(0.002, 0.006, 20), 0x998877, 0);
+  dust.material.side = THREE.DoubleSide;
+
+  group.add(flash, heave, debris, dust);
+  return { flash, heave, debris, dust };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXPLOSION UPDATE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════
+
+function updateNuclearExplosion(exp, t) {
+  // Phase 1 (0-0.12): White flash
+  // Phase 2 (0.12-0.35): Fireball + thermal pulse + shockwaves
+  // Phase 3 (0.35-1.0): Mushroom cloud rises, everything fades
+  exp.fireball.scale.setScalar(1 + t * 4);
+  exp.fireball.material.opacity = Math.max(0, 1 - t * 5);
+
+  exp.thermal.scale.setScalar(1 + Math.min(t * 2, 1) * 3);
+  exp.thermal.material.opacity = Math.max(0, 0.65 * (1 - t * 1.1));
+
+  const shockT = Math.min(t * 3, 1);
+  exp.shockwave.scale.setScalar(1 + shockT * 14);
+  exp.shockwave.material.opacity = Math.max(0, 0.7 * (1 - shockT));
+
+  const sh2T = Math.max(0, Math.min((t - 0.08) * 2.5, 1));
+  exp.shockwave2.scale.setScalar(1 + sh2T * 20);
+  exp.shockwave2.material.opacity = Math.max(0, 0.45 * (1 - sh2T));
+
+  const colT = Math.max(0, Math.min((t - 0.06) * 2, 1));
+  exp.column.scale.set(1 + colT * 0.5, 1 + colT * 4, 1 + colT * 0.5);
+  exp.column.material.opacity = Math.max(0, 0.3 * (1 - Math.max(0, t - 0.5) * 2));
+
+  const capT = Math.max(0, Math.min((t - 0.12) * 1.6, 1));
+  exp.cap.scale.setScalar(1 + capT * 3);
+  exp.cap.material.opacity = Math.max(0, 0.25 * (1 - Math.max(0, t - 0.4) * 1.7));
+
+  exp.outerGlow.scale.setScalar(1 + t * 5);
+  exp.outerGlow.material.opacity = Math.max(0, 0.12 * (1 - t * 0.7));
+}
+
+function updateConventionalExplosion(exp, t) {
+  // Quick flash, small debris cloud, fast fade
+  exp.flash.scale.setScalar(1 + t * 6);
+  exp.flash.material.opacity = Math.max(0, 1 - t * 4);
+
+  exp.smoke.scale.setScalar(1 + t * 4);
+  exp.smoke.material.opacity = Math.max(0, 0.4 * (1 - t * 0.8));
+
+  const scorchT = Math.min(t * 4, 1);
+  exp.scorch.scale.setScalar(1 + scorchT * 3);
+  exp.scorch.material.opacity = Math.max(0, 0.5 * (1 - t));
+}
+
+function updateThermobaricExplosion(exp, t) {
+  // Large expanding fireball, horizontal pressure wave, delayed secondary
+  exp.fireball.scale.setScalar(1 + t * 5);
+  exp.fireball.material.opacity = Math.max(0, 0.8 * (1 - t * 1.5));
+
+  const ringT = Math.min(t * 2.5, 1);
+  exp.pressureRing.scale.setScalar(1 + ringT * 10);
+  exp.pressureRing.material.opacity = Math.max(0, 0.6 * (1 - ringT));
+
+  // Secondary ignition delayed 0.2
+  const secT = Math.max(0, (t - 0.15) * 2);
+  exp.secondary.scale.setScalar(1 + Math.min(secT, 1) * 4);
+  exp.secondary.material.opacity = Math.max(0, 0.35 * (1 - secT * 0.7));
+
+  exp.smoke.scale.set(1 + t * 2, 1 + t * 5, 1 + t * 2);
+  exp.smoke.material.opacity = Math.max(0, 0.25 * (1 - t * 0.6));
+}
+
+function updateEmpExplosion(exp, t, cam) {
+  // Brief flash, then rapidly expanding pulse rings
+  exp.flash.scale.setScalar(1 + t * 3);
+  exp.flash.material.opacity = Math.max(0, 0.8 * (1 - t * 5));
+
+  // Primary EMP ring — expands very quickly and far
+  const ringT = Math.min(t * 1.5, 1);
+  exp.pulseRing.scale.setScalar(1 + ringT * 60); // very large expansion
+  exp.pulseRing.material.opacity = Math.max(0, 0.5 * (1 - ringT * 0.8));
+  if (cam) exp.pulseRing.lookAt(cam.position);
+
+  // Secondary ring — slower, wider
+  const ring2T = Math.max(0, Math.min((t - 0.1) * 1.2, 1));
+  exp.pulseRing2.scale.setScalar(1 + ring2T * 80);
+  exp.pulseRing2.material.opacity = Math.max(0, 0.3 * (1 - ring2T * 0.7));
+  if (cam) exp.pulseRing2.lookAt(cam.position);
+
+  exp.glow.scale.setScalar(1 + t * 30);
+  exp.glow.material.opacity = Math.max(0, 0.1 * (1 - t * 0.5));
+}
+
+function updateClusterImpact(exp, t) {
+  // Parent casing flash fades quickly
+  exp.parentFlash.scale.setScalar(1 + t * 3);
+  exp.parentFlash.material.opacity = Math.max(0, 0.6 * (1 - t * 3));
+
+  // Submunitions impact with staggered timing
+  for (const sub of exp.submunitions) {
+    if (t < sub.delay) {
+      sub.mesh.material.opacity = 0;
+      continue;
+    }
+    const subT = (t - sub.delay) / (1 - sub.delay + 0.01);
+    sub.mesh.scale.setScalar(1 + subT * 4);
+    sub.mesh.material.opacity = subT < 0.1
+      ? Math.min(subT / 0.1, 1) * 0.8  // flash on
+      : Math.max(0, 0.8 * (1 - (subT - 0.1) * 1.2)); // fade out
+  }
+}
+
+function updateBunkerBusterExplosion(exp, t) {
+  // Small surface flash, then delayed ground heave + debris ejection
+  exp.flash.scale.setScalar(1 + t * 3);
+  exp.flash.material.opacity = Math.max(0, 0.4 * (1 - t * 4));
+
+  // Ground heave — delayed 0.3s, then rises and settles
+  const heaveT = Math.max(0, (t - 0.2) * 2);
+  const heaveScale = Math.min(heaveT, 1);
+  exp.heave.scale.setScalar(1 + heaveScale * 2);
+  exp.heave.material.opacity = Math.max(0, 0.35 * heaveScale * (1 - Math.max(0, heaveT - 0.5) * 1.5));
+
+  // Debris column — delayed 0.3s
+  const debrisT = Math.max(0, (t - 0.25) * 1.8);
+  exp.debris.scale.set(1 + debrisT * 0.3, 1 + Math.min(debrisT, 1) * 5, 1 + debrisT * 0.3);
+  exp.debris.material.opacity = Math.max(0, 0.4 * Math.min(debrisT, 1) * (1 - Math.max(0, debrisT - 0.5) * 1.5));
+
+  // Dust ring — delayed 0.4s
+  const dustT = Math.max(0, (t - 0.3) * 1.5);
+  exp.dust.scale.setScalar(1 + Math.min(dustT, 1) * 6);
+  exp.dust.material.opacity = Math.max(0, 0.3 * Math.min(dustT, 1) * (1 - Math.max(0, dustT - 0.4) * 1.8));
 }
 
 function clearGroup(group) {

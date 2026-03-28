@@ -88,6 +88,31 @@ export function createOceanNavGrid({ isOcean }) {
 
       return waypoints;
     },
+    // Conservative smoothing variant — MAX_JUMP capped to 8 cells (2°).
+    // Preserves narrow coastal detail (Qatar, UAE, straits) that the
+    // aggressive default smoother (MAX_JUMP=60) can shortcut through.
+    findPathCoastal(startLat, startLon, endLat, endLon) {
+      const start = latLonToCell(startLat, startLon);
+      const end = latLonToCell(endLat, endLon);
+      const startCell = findNearestOcean(grid, start.row, start.col);
+      const endCell = findNearestOcean(grid, end.row, end.col);
+
+      if (!startCell || !endCell) return [];
+
+      const rawPath = astar(grid, startCell, endCell);
+      if (rawPath.length === 0) return [];
+
+      const smoothed = smoothPathConservative(rawPath, grid);
+
+      const waypoints = smoothed.map((cell) => ({
+        lat: 90 - (cell.row + 0.5) * GRID_RESOLUTION,
+        lon: -180 + (cell.col + 0.5) * GRID_RESOLUTION,
+      }));
+
+      waypoints[0] = { lat: startLat, lon: startLon };
+      waypoints[waypoints.length - 1] = { lat: endLat, lon: endLon };
+      return waypoints;
+    },
     isNavigable(lat, lon) {
       const cell = latLonToCell(lat, lon);
       return grid[cell.row * GRID_COLS + cell.col] === 1;
@@ -241,6 +266,31 @@ function smoothPath(path, grid) {
   }
 
   const MAX_JUMP = 60;
+  const result = [path[0]];
+  let current = 0;
+
+  while (current < path.length - 1) {
+    let farthest = current + 1;
+    const limit = Math.min(path.length - 1, current + MAX_JUMP);
+    for (let i = limit; i > current + 1; i--) {
+      if (hasLineOfSight(grid, path[current], path[i])) {
+        farthest = i;
+        break;
+      }
+    }
+    result.push(path[farthest]);
+    current = farthest;
+  }
+
+  return result;
+}
+
+// Conservative string-pulling: max 8-cell jumps (2 degrees).
+// Keeps lines tight to coastlines — no shortcuts across narrow peninsulas.
+function smoothPathConservative(path, grid) {
+  if (path.length <= 2) return path;
+
+  const MAX_JUMP = 8;
   const result = [path[0]];
   let current = 0;
 
