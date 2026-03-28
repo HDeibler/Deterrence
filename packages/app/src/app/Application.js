@@ -49,6 +49,7 @@ import { createMissileFlightController } from './createMissileFlightController.j
 import { createScenarioController, SCENARIOS } from '../game/createScenarioController.js';
 import { createPointerController } from './createPointerController.js';
 import { createViewStateController } from './createViewStateController.js';
+import { createAIController } from '../game/createAIController.js';
 import { formatTargetLabel } from './formatTargetLabel.js';
 
 export async function createApplication({
@@ -331,6 +332,20 @@ export async function createApplication({
   damageSimulation.ensureLoaded();
   const impactedMissileIds = new Set();
 
+  // AI opponent controllers — one per non-player nation
+  const AI_NATIONS = ['CHN', 'RUS', 'USA'];
+  const aiControllers = AI_NATIONS
+    .filter((n) => n !== activeCountryIso3)
+    .map((nation) =>
+      createAIController({
+        iso3: nation,
+        missileFlights,
+        radarSimulation,
+        damageSimulation,
+        installationStore,
+      }),
+    );
+
   // Petroleum panel elements
   const placeReserveBtn = document.getElementById('placeReserveBtn');
   const placePortBtn = document.getElementById('placePortBtn');
@@ -419,6 +434,9 @@ export async function createApplication({
       scenarioController.step(stepSeconds);
       oilSimulation.step(stepSeconds);
       tradeSimulation.step(stepSeconds);
+      for (const ai of aiControllers) {
+        ai.step(stepSeconds, gameClock.getElapsedSeconds());
+      }
 
       // Missile defense: detect threats + launch interceptors
       const radarSnap = radarSimulation.getSnapshot();
