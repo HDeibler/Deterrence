@@ -50,6 +50,8 @@ import { createScenarioController, SCENARIOS } from '../game/createScenarioContr
 import { createPointerController } from './createPointerController.js';
 import { createViewStateController } from './createViewStateController.js';
 import { formatTargetLabel } from './formatTargetLabel.js';
+import { createScorecard } from '../game/createScorecard.js';
+import { createScorecardController } from '../ui/createScorecardController.js';
 
 export async function createApplication({
   mountNode,
@@ -329,6 +331,8 @@ export async function createApplication({
   });
   const damageSimulation = createDamageSimulation();
   damageSimulation.ensureLoaded();
+  const scorecard = createScorecard({ countryDirectory });
+  const scorecardController = createScorecardController({ document });
   const impactedMissileIds = new Set();
 
   // Petroleum panel elements
@@ -2373,6 +2377,7 @@ export async function createApplication({
       gameClock.reset();
       notifiedThreatIds.clear();
       scenarioLoaded = false;
+      scorecardController.hide();
     }
 
     // Update scenario options while on the nation select screen
@@ -2581,6 +2586,18 @@ export async function createApplication({
     requestRender();
   });
 
+  function showScorecard(gameStatus) {
+    const result = scorecard.compile({
+      damageSimulation,
+      missileFlights,
+      oilSimulation,
+      activeCountryIso3,
+      elapsedSeconds: gameClock.getElapsedSeconds(),
+      gameStatus,
+    });
+    scorecardController.render(result);
+  }
+
   return {
     start() {
       if (running) {
@@ -2591,6 +2608,7 @@ export async function createApplication({
       clock.start();
       requestRender();
     },
+    showScorecard,
     dispose() {
       running = false;
       sceneContext.controls.removeEventListener('change', requestRender);

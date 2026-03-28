@@ -1924,3 +1924,79 @@ canvas {
   opacity: 0.4;
   cursor: default;
 }
+
+/* ── Scorecard ── */
+.scorecard-container {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: rgba(4, 9, 19, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 1.5rem 2rem;
+  backdrop-filter: blur(12px);
+  max-width: 640px;
+  width: 90vw;
+}
+
+.scorecard-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.25rem;
+}
+
+.scorecard-victory {
+  color: #4ade80;
+}
+
+.scorecard-defeat {
+  color: #ef4444;
+}
+
+.scorecard-grade {
+  font-size: 3rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.grade-a { color: #4ade80; }
+.grade-b { color: #60a5fa; }
+.grade-c { color: #fbbf24; }
+.grade-d { color: #fb923c; }
+.grade-f { color: #ef4444; }
+
+.scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.scorecard-stat {
+  background: rgba(9, 18, 33, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.scorecard-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.25rem;
+}
+
+.scorecard-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
