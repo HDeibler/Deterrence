@@ -372,6 +372,8 @@ export async function createApplication({
     missileFlights,
     radarSimulation,
     getEarthRotationRadians: () => celestialSystem.getEarthRotationRadians(),
+    navalSimulation,
+    notifications,
   });
 
   const viewController = createViewStateController({
