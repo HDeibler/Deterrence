@@ -46,6 +46,8 @@ export function createScenarioController({ missileFlights, radarSimulation, getE
           label: event.targetName ?? 'Target',
         },
       });
+    } else {
+      console.warn('Unknown scenario event type:', event.type);
     }
   }
 }

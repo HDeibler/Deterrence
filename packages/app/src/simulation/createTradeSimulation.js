@@ -61,7 +61,7 @@ export function createTradeSimulation({ oilSimulation, oceanNavGrid, navalSimula
       portDataLoaded = true;
       routesDirty = true;
     })
-    .catch(() => {});
+    .catch((err) => { console.error('Failed to load major ports data:', err); });
 
   function setActiveCountry(iso3) {
     activeCountryIso3 = iso3;

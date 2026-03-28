@@ -48,7 +48,7 @@ export function createOilSimulation() {
       initializeCountries();
       loaded = true;
     })
-    .catch(() => {});
+    .catch((err) => { console.error('Failed to load oil production data:', err); });
 
   function initializeCountries() {
     for (const country of countryData) {
