@@ -15,6 +15,9 @@ import {
 } from './orbitalMath.js';
 import { applyEarthRotation, buildSurfaceFrame, latLonToVector3 } from '../world/geo/geoMath.js';
 
+const GROUND_RADAR_DEPLOY_SECONDS = 120;
+const INTERCEPTOR_DEPLOY_SECONDS = 90;
+
 const LAUNCH_PATH_SAMPLE_SECONDS = 8;
 const LAUNCH_PATH_LIMIT = 360;
 const VERTICAL_ASCENT_SECONDS = 12;
@@ -115,19 +118,22 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
   let nextInterceptorSiteId = 1;
 
   return {
-    placeGroundRadar({ countryIso3, lat, lon }) {
+    placeGroundRadar({ countryIso3, lat, lon, skipDeployment = false }) {
       const radar = {
         id: `ground-radar-${nextGroundRadarId}`,
         countryIso3,
         latitude: lat,
         longitude: lon,
         coverageKm: GROUND_RADAR_PRESET.coverageKm,
+        status: skipDeployment ? 'operational' : 'deploying',
+        deployProgress: skipDeployment ? GROUND_RADAR_DEPLOY_SECONDS : 0,
+        deployDuration: GROUND_RADAR_DEPLOY_SECONDS,
       };
       nextGroundRadarId += 1;
       groundRadars.push(radar);
       return radar;
     },
-    placeInterceptorSite({ countryIso3, lat, lon, type }) {
+    placeInterceptorSite({ countryIso3, lat, lon, type, skipDeployment = false }) {
       const preset = INTERCEPTOR_PRESETS[type];
       if (!preset) return null;
       const site = {
@@ -146,6 +152,9 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
         thrustMps2: preset.thrustMps2,
         maxSpeedKmS: preset.maxSpeedKmS,
         killProbability: preset.killProbability,
+        status: skipDeployment ? 'operational' : 'deploying',
+        deployProgress: skipDeployment ? INTERCEPTOR_DEPLOY_SECONDS : 0,
+        deployDuration: INTERCEPTOR_DEPLOY_SECONDS,
       };
       nextInterceptorSiteId += 1;
       interceptorSites.push(site);
@@ -160,7 +169,7 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
       return false;
     },
     getInterceptorSites() {
-      return interceptorSites;
+      return interceptorSites.filter((s) => s.status === 'operational');
     },
     // Instantly deploy a satellite already in its operational orbit (for scenarios)
     deployOperationalSatellite({ countryIso3, slotLongitude, earthRotationRadians, altitudeKm }) {
@@ -235,6 +244,10 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
       return launch;
     },
     step(deltaSeconds) {
+      // Advance deployment timers for ground assets
+      for (const radar of groundRadars) advanceDeployTimer(radar, deltaSeconds);
+      for (const site of interceptorSites) advanceDeployTimer(site, deltaSeconds);
+
       for (let index = launches.length - 1; index >= 0; index -= 1) {
         const launch = launches[index];
         stepLaunchVehicle({
@@ -270,7 +283,10 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
     },
     getSnapshot() {
       return {
-        groundRadars: groundRadars.map((radar) => ({ ...radar })),
+        groundRadars: groundRadars
+          .filter((radar) => radar.status === 'operational')
+          .map((radar) => ({ ...radar })),
+        allGroundRadars: groundRadars.map((radar) => ({ ...radar })),
         satellites: satellites.map((satellite) => {
           const currentRadiusUnits = satellite.position.length();
           const currentAltitudeKm = (currentRadiusUnits - 6.371) * 1000;
@@ -317,7 +333,10 @@ export function createRadarSimulation({ simulationConfig, worldConfig }) {
           spaceport: { ...launch.spaceport },
         })),
         geoSlots: GEO_SLOTS.map((slot) => ({ ...slot })),
-        interceptorSites: interceptorSites.map((site) => ({ ...site })),
+        interceptorSites: interceptorSites
+          .filter((site) => site.status === 'operational')
+          .map((site) => ({ ...site })),
+        allInterceptorSites: interceptorSites.map((site) => ({ ...site })),
       };
     },
   };
@@ -856,6 +875,15 @@ function enforceMinimumAltitude(position, velocity, earthRadiusUnits) {
     if (radialVel < 0) {
       velocity.sub(position.clone().normalize().multiplyScalar(radialVel));
     }
+  }
+}
+
+function advanceDeployTimer(asset, deltaSeconds) {
+  if (asset.status !== 'deploying') return;
+  asset.deployProgress += deltaSeconds;
+  if (asset.deployProgress >= asset.deployDuration) {
+    asset.deployProgress = asset.deployDuration;
+    asset.status = 'operational';
   }
 }
 
