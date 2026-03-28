@@ -13,6 +13,8 @@ export function createGameSessionStore({
     paused: Boolean(initialPaused),
     started: Boolean(initialStarted),
     devMode: Boolean(devMode),
+    gameStatus: 'ongoing',
+    gameStatusReason: '',
   };
 
   return {
@@ -28,6 +30,8 @@ export function createGameSessionStore({
       state.activeCountryIso3 = normalizeIso3(iso3);
       state.started = true;
       state.paused = false;
+      state.gameStatus = 'ongoing';
+      state.gameStatusReason = '';
       emit();
     },
     setActiveCountry(iso3) {
@@ -62,6 +66,19 @@ export function createGameSessionStore({
     },
     setDefenseTargetOwn(value) {
       state.defenseTargetOwn = Boolean(value);
+      emit();
+    },
+    setGameOver(status, reason) {
+      state.gameStatus = status;
+      state.gameStatusReason = reason;
+      state.paused = true;
+      emit();
+    },
+    returnToMenu() {
+      state.started = false;
+      state.paused = true;
+      state.gameStatus = 'ongoing';
+      state.gameStatusReason = '';
       emit();
     },
   };

@@ -1924,3 +1924,51 @@ canvas {
   opacity: 0.4;
   cursor: default;
 }
+
+/* End-game overlay */
+
+.end-game-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.end-game-stat {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(7, 16, 31, 0.6);
+  border: 1px solid var(--panel-border);
+}
+
+.end-game-stat .label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.end-game-stat .value {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.end-game-stat .value.fatal {
+  color: var(--silo);
+}
+
+.end-game-stat .value.injured {
+  color: var(--probe);
+}
+
+#endGameStatus.victory {
+  color: #6bffd4;
+}
+
+#endGameStatus.defeat {
+  color: var(--silo);
+}

@@ -44,9 +44,32 @@ export async function bootstrapApplication({ mountNode, document, window, enviro
   });
   app.start();
 
+  const endGameOverlay = document.getElementById('endGameOverlay');
+  const endGameStatus = document.getElementById('endGameStatus');
+  const endGameTitle = document.getElementById('endGameTitle');
+  const endGameReason = document.getElementById('endGameReason');
+  const endGameRestartBtn = document.getElementById('endGameRestartBtn');
+
+  endGameRestartBtn.addEventListener('click', () => {
+    sessionStore.returnToMenu();
+  });
+
   const detachSession = sessionStore.subscribe((session) => {
     gameMenu.render(session);
+    renderEndGameOverlay(session);
   });
+
+  function renderEndGameOverlay(session) {
+    const isGameOver = session.gameStatus === 'victory' || session.gameStatus === 'defeat';
+    endGameOverlay.hidden = !isGameOver;
+    if (!isGameOver) return;
+
+    const isVictory = session.gameStatus === 'victory';
+    endGameStatus.textContent = isVictory ? 'VICTORY' : 'DEFEAT';
+    endGameStatus.className = `eyebrow ${session.gameStatus}`;
+    endGameTitle.textContent = isVictory ? 'Mission Complete' : 'Game Over';
+    endGameReason.textContent = session.gameStatusReason;
+  }
   const detachStart = gameMenu.onStart((iso3) => {
     sessionStore.selectNation(iso3);
   });

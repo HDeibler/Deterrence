@@ -50,6 +50,7 @@ import { createScenarioController, SCENARIOS } from '../game/createScenarioContr
 import { createPointerController } from './createPointerController.js';
 import { createViewStateController } from './createViewStateController.js';
 import { formatTargetLabel } from './formatTargetLabel.js';
+import { createVictoryEvaluator } from '../game/createVictoryEvaluator.js';
 
 export async function createApplication({
   mountNode,
@@ -330,6 +331,7 @@ export async function createApplication({
   const damageSimulation = createDamageSimulation();
   damageSimulation.ensureLoaded();
   const impactedMissileIds = new Set();
+  let victoryEvaluator = null;
 
   // Petroleum panel elements
   const placeReserveBtn = document.getElementById('placeReserveBtn');
@@ -497,6 +499,17 @@ export async function createApplication({
             },
           }],
         });
+      }
+
+      // Evaluate victory/defeat conditions
+      if (victoryEvaluator) {
+        const result = victoryEvaluator.evaluate();
+        if (result.status !== 'ongoing') {
+          sessionStore.setGameOver(result.status, result.reason);
+          victoryEvaluator = null;
+          accumulated = 0;
+          break;
+        }
       }
 
       accumulated -= simulationConfig.fixedTimeStep;
@@ -2373,6 +2386,16 @@ export async function createApplication({
       gameClock.reset();
       notifiedThreatIds.clear();
       scenarioLoaded = false;
+      victoryEvaluator = null;
+    }
+
+    // Create victory evaluator when a session starts
+    if (session.started && session.gameStatus === 'ongoing' && !victoryEvaluator && activeCountryIso3) {
+      victoryEvaluator = createVictoryEvaluator({
+        damageSimulation,
+        activeCountryIso3,
+        gameClock,
+      });
     }
 
     // Update scenario options while on the nation select screen
