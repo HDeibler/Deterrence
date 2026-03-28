@@ -154,17 +154,28 @@ export function createDefenseOverlaySystem({
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
 
-      // Draw radar icons
-      for (const radar of radarSnapshot.groundRadars) {
-        drawIcon(radar.latitude, radar.longitude, radarIcon, ICON_SIZE, dpr);
+      // Draw radar icons (all radars, including deploying)
+      for (const radar of radarSnapshot.allGroundRadars ?? radarSnapshot.groundRadars) {
+        const deploying = radar.status === 'deploying';
+        drawIcon(radar.latitude, radar.longitude, radarIcon, ICON_SIZE, dpr, deploying ? 0.4 : 1.0);
+        if (deploying) {
+          const screen = projectLatLon(radar.latitude, radar.longitude);
+          if (screen) {
+            drawDeployArcAt(screen, ICON_SIZE, dpr, radar.deployProgress / radar.deployDuration, RADAR_ICON_COLOR);
+          }
+        }
       }
 
-      // Draw NGI icons with interceptor count
-      for (const site of radarSnapshot.interceptorSites ?? []) {
-        drawIcon(site.latitude, site.longitude, ngiIcon, ICON_SIZE, dpr);
-        // Badge with remaining count
+      // Draw NGI icons with interceptor count (all sites, including deploying)
+      for (const site of radarSnapshot.allInterceptorSites ?? radarSnapshot.interceptorSites ?? []) {
+        const deploying = site.status === 'deploying';
+        drawIcon(site.latitude, site.longitude, ngiIcon, ICON_SIZE, dpr, deploying ? 0.4 : 1.0);
         const screen = projectLatLon(site.latitude, site.longitude);
-        if (screen) {
+        if (!screen) continue;
+        if (deploying) {
+          drawDeployArcAt(screen, ICON_SIZE, dpr, site.deployProgress / site.deployDuration, NGI_ICON_COLOR);
+        } else {
+          // Badge with remaining count (only when operational)
           ctx.font = `bold ${Math.round(9 * dpr)}px monospace`;
           ctx.fillStyle = NGI_ICON_COLOR;
           ctx.textAlign = 'center';
@@ -469,13 +480,30 @@ export function createDefenseOverlaySystem({
     };
   }
 
-  function drawIcon(lat, lon, icon, size, dpr) {
+  function drawIcon(lat, lon, icon, size, dpr, opacity = 1.0) {
     if (!icon) return;
     const screen = projectLatLon(lat, lon);
     if (!screen) return;
 
     const s = size * dpr;
+    const prevAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = opacity;
     ctx.drawImage(icon, screen.x * dpr - s / 2, screen.y * dpr - s / 2, s, s);
+    ctx.globalAlpha = prevAlpha;
+  }
+
+  function drawDeployArcAt(screen, size, dpr, progress, color) {
+    const cx = screen.x * dpr;
+    const cy = screen.y * dpr;
+    const radius = (size * dpr) / 2 + 3 * dpr;
+    const startAngle = -Math.PI / 2;
+    const endAngle = startAngle + Math.PI * 2 * Math.min(progress, 1);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 * dpr;
+    ctx.stroke();
   }
 
   function latLonToWorld(lat, lon) {
