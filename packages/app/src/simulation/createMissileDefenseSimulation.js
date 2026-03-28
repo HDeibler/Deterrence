@@ -422,31 +422,11 @@ export function createMissileDefenseSimulation({ worldConfig, simulationConfig, 
       : new THREE.Vector3(radialDir.y, -radialDir.x, 0).normalize();
 
     // Scenario parameters for table lookup
-    const distKm = haversineDistanceKm(
-      { lat: site.latitude, lon: site.longitude },
-      computeGroundTrack(missile.position),
-    );
-    const icbmAltKm = missile.altitudeKm ?? 0;
-    const icbmSpeedKmS = missile.speedKmS ?? 1;
-
-
-    // DEBUG: Log launch conditions
-    const obsVel = threat?.observedVelocity;
-    const obsSpeedKmS = obsVel ? (obsVel.length() * scaleMeters / 1000).toFixed(1) : 'null';
-    console.log(`[BMD] Launching ${site.type} interceptor:`);
-    console.log(`  ICBM phase: ${missile.phase}, alt: ${icbmAltKm.toFixed(0)}km, speed: ${icbmSpeedKmS.toFixed(1)}km/s`);
-    console.log(`  Observed velocity: ${obsSpeedKmS} km/s`);
-    console.log(`  Distance to ICBM: ${distKm.toFixed(0)}km`);
-    console.log(`  Site: ${site.type} at ${site.latitude.toFixed(1)},${site.longitude.toFixed(1)}`);
-
     // Compute predicted intercept point for visual display
     let predictedInterceptPos;
     try {
       predictedInterceptPos = computeInterceptPoint(position, site, missile, threats.get(missile.id));
-      const interceptDistKm = (position.distanceTo(predictedInterceptPos) * scaleMeters / 1000).toFixed(0);
-      console.log(`  Predicted intercept point: ${interceptDistKm}km from site`);
     } catch (e) {
-      console.log(`  Intercept point calc failed: ${e.message}`);
       predictedInterceptPos = missile.position.clone();
     }
 
@@ -556,17 +536,6 @@ export function createMissileDefenseSimulation({ worldConfig, simulationConfig, 
     const targetMissile = missileSnapshots.find(
       (m) => m.id === interceptor.targetMissileId && m.active,
     );
-
-    // DEBUG: Log every 40 sim seconds
-    if (Math.floor(interceptor.flightTimeSeconds / 40) !== Math.floor((interceptor.flightTimeSeconds - deltaSeconds) / 40) && interceptor.flightTimeSeconds > 1) {
-      const d = targetMissile ? (interceptor.position.distanceTo(targetMissile.position) * scaleMeters / 1000).toFixed(0) : '?';
-      const alt = ((interceptor.position.length() - earthRadiusUnits) * 1000).toFixed(0);
-      const spd = (interceptor.velocity.length() * scaleMeters / 1000).toFixed(1);
-      const predDist = interceptor.predictedInterceptPos ? (interceptor.position.distanceTo(interceptor.predictedInterceptPos) * scaleMeters / 1000).toFixed(0) : '?';
-      const icbmToPred = targetMissile && interceptor.predictedInterceptPos ? (targetMissile.position.distanceTo(interceptor.predictedInterceptPos) * scaleMeters / 1000).toFixed(0) : '?';
-      const mode = interceptor.requiredVelocity ? 'Lambert' : 'APN';
-      console.log(`[BMD] t=${interceptor.flightTimeSeconds.toFixed(0)}s: alt=${alt}km spd=${spd}km/s | dist_icbm=${d}km | dist_pred=${predDist}km | mode=${mode}`);
-    }
 
     if (!targetMissile) {
       selfDestruct(interceptor, 'no-target');
