@@ -30,7 +30,7 @@ export function createNavalSimulation() {
   const fleets = [];
 
   return {
-    createFleet({ lat, lon, ships, name, speedKnots = 30 }) {
+    createFleet({ lat, lon, ships, name, speedKnots = 30, countryIso3 }) {
       const num = _nextFleetId++;
       const fleetId = `fleet_${num}`;
       const fleetName = name || FLEET_NAMES[(num - 1) % FLEET_NAMES.length];
@@ -41,6 +41,7 @@ export function createNavalSimulation() {
         lon,
         heading: 0,
         speedKnots,
+        countryIso3: countryIso3 || null,
         waypoints: [],
         waypointIndex: 0,
         isMoving: false,
