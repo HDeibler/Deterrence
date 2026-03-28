@@ -47,6 +47,7 @@ import { createDamageSimulation } from '../simulation/createDamageSimulation.js'
 import { getMissileType, getCompatibleWarheads, getWarheadType } from '../game/data/munitionCatalog.js';
 import { createMissileFlightController } from './createMissileFlightController.js';
 import { createScenarioController, SCENARIOS } from '../game/createScenarioController.js';
+import { createForceBudgetStore } from '../game/createForceBudgetStore.js';
 import { createPointerController } from './createPointerController.js';
 import { createViewStateController } from './createViewStateController.js';
 import { formatTargetLabel } from './formatTargetLabel.js';
@@ -119,6 +120,7 @@ export async function createApplication({
   const notifiedThreatIds = new Set();
   let selectedScenarioId = '';
   let scenarioLoaded = false;
+  let forceBudget = null;
   const scenarioOptionsEl = document.getElementById('scenarioOptions');
 
   const celestialSystem = await createCelestialSystem({
@@ -1446,6 +1448,11 @@ export async function createApplication({
         continue;
       }
 
+      if (forceBudget && !forceBudget.consumeLaunch(selectedMissileType)) {
+        notifications.warn(`No remaining ${missileTypeData?.label ?? selectedMissileType} missiles`);
+        break;
+      }
+
       installationStore.markSiloSpent(launchSite.id);
       const labeledTarget = { ...primaryTarget, label: primaryTarget.label ?? formatTargetLabel(primaryTarget) };
 
@@ -1495,6 +1502,11 @@ export async function createApplication({
       return;
     }
     if (selection.launchSite.category !== 'silo') {
+      return;
+    }
+    if (forceBudget && !forceBudget.consumeLaunch(selectedMissileType)) {
+      const missileTypeData = getMissileType(selectedMissileType);
+      notifications.warn(`No remaining ${missileTypeData?.label ?? selectedMissileType} missiles`);
       return;
     }
     installationStore.markSiloSpent(selection.launchSite.id);
@@ -1854,6 +1866,11 @@ export async function createApplication({
       return;
     }
 
+    if (forceBudget && !forceBudget.consumeInterceptor()) {
+      notifications.warn('No remaining interceptor sites in force budget');
+      return;
+    }
+
     radarSimulation.placeInterceptorSite({
       countryIso3: activeCountryIso3,
       lat: target.lat,
@@ -1901,6 +1918,10 @@ export async function createApplication({
     if (!activeCountryIso3 || !radarSelection.groundTarget) {
       return;
     }
+    if (forceBudget && !forceBudget.consumeRadar()) {
+      notifications.warn('No remaining ground radars in force budget');
+      return;
+    }
     radarSimulation.placeGroundRadar({
       countryIso3: activeCountryIso3,
       lat: radarSelection.groundTarget.lat,
@@ -1919,6 +1940,11 @@ export async function createApplication({
 
     // GEO requires a slot selection; non-GEO launches directly
     if (isGeo && !radarSelection.satelliteSlot) {
+      return;
+    }
+
+    if (forceBudget && !forceBudget.consumeSatellite()) {
+      notifications.warn('No remaining satellites in force budget');
       return;
     }
 
@@ -2361,6 +2387,9 @@ export async function createApplication({
     if (activeCountryIso3) {
       installationStore.setActiveCountry(activeCountryIso3);
       tradeSimulation.setActiveCountry(activeCountryIso3);
+      if (countryChanged || !forceBudget) {
+        forceBudget = createForceBudgetStore({ iso3: activeCountryIso3, oilSimulation });
+      }
     }
     missileOverlay.setGodView(godView);
     missileOverlay.setPreviewCountry(session.started ? null : activeCountryIso3);
