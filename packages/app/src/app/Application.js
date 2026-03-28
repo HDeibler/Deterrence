@@ -2460,6 +2460,7 @@ export async function createApplication({
       lat: baseSite.latitude,
       lon: baseSite.longitude,
       ships,
+      countryIso3: activeCountryIso3,
     });
     selectedFleetId = fleet.id;
     fleetAction.open(fleet);
